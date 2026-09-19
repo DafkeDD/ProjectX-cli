@@ -30,7 +30,7 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 
 | # | Stap     | Keuzes                           | Resultaat     |
 |---|----------|----------------------------------|---------------|
-| 1 | Frontend | Next.js + Tailwind CSS, of geen  | `./frontend`  |
+| 1 | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze), of geen | `./frontend`  |
 | 2 | Backend  | _volgt_                          |               |
 
 ### 1. Frontend
@@ -41,8 +41,43 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 - TypeScript, ESLint, App Router, `src/`-map, import-alias `@/*`
 - **Turbopack** — standaard-bundler sinds Next.js 16 (`next dev` / `next build`)
 - Geen eigen git-repo in `./frontend`; git hoort op projectniveau
+- **next-intl, altijd** — dat zelf is geen vraag. Wel vraagt de CLI:
+  - **welke talen** (aanvinken met spatie): English, Nederlands, Français,
+    Deutsch, Español, Italiano, Português, Polski — voorgeselecteerd:
+    `en`, `nl`, `fr`, `de`
+  - **welke taal de standaard is** (voorstel: Engels)
+- de taal staat **nooit in de URL** (`localePrefix: 'never'`); de keuze zit in
+  de cookie `NEXT_LOCALE`. `/nl/…` wordt doorgestuurd naar `/…`
+- zonder cookie kiest next-intl op basis van de browsertaal
+- vertalingen in `messages/<taal>.json`, één per gekozen taal — zichtbare
+  tekst nooit hard coderen
+- `src/proxy.ts` (de opvolger van `middleware.ts` sinds Next.js 16),
+  `src/i18n/` (routing, request, navigation, actions), `src/app/[locale]/`
+  en een `LocaleSwitcher`-component
+
+```
+frontend/
+├─ messages/            één .json per gekozen taal
+└─ src/
+   ├─ proxy.ts          next-intl middleware
+   ├─ i18n/             routing · request · navigation · actions
+   ├─ components/       LocaleSwitcher.tsx
+   └─ app/
+      ├─ layout.tsx     <html lang> + fonts
+      └─ [locale]/      layout.tsx · page.tsx
+```
 
 Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet.
+
+## Oude versie na een update?
+
+`npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit
+op. Je ziet de versie bovenaan (`projectx-cli v0.2.0`). Klopt die niet, maak
+dan de npx-cache leeg:
+
+```powershell
+Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"
+```
 
 ## Ontwikkelen aan de CLI zelf
 
@@ -58,7 +93,8 @@ Structuur:
 src/
 ├─ index.ts            vragen → controles → overzicht → installeren
 ├─ steps/
-│  └─ frontend.ts      askFrontend / checkFrontend / scaffoldFrontend
+│  ├─ frontend.ts      askFrontend / checkFrontend / scaffoldFrontend
+│  └─ i18n.ts          next-intl: talen, bestanden, vertalingen
 └─ utils/              exec, progress-bar, prompt-helpers
 ```
 

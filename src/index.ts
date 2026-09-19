@@ -1,22 +1,41 @@
 #!/usr/bin/env node
+import fs from "node:fs";
 import path from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { askFrontend, checkFrontend, frontendLabel, scaffoldFrontend, FRONTEND_DIR } from "./steps/frontend.js";
+import { askI18n, i18nLabel, type I18nConfig } from "./steps/i18n.js";
 import { orCancel } from "./utils/prompt.js";
+import { isGlobalInstall } from "./utils/guard.js";
 import type { PackageManager } from "./types.js";
 
 const PACKAGE_MANAGER: PackageManager = "npm";
 
+/** Versie uit package.json — zo zie je meteen of npx een oude kopie draait. */
+const VERSION: string = JSON.parse(
+  fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+).version;
+
 async function main(): Promise<void> {
+  if (isGlobalInstall()) {
+    console.error(
+      "\n  projectx-cli is globaal geïnstalleerd — dat is niet de bedoeling.\n" +
+        "  Verwijder hem met:  npm uninstall -g projectx-cli\n" +
+        "  en draai hem per project:  npx --allow-git=root github:DafkeDD/ProjectX-cli\n",
+    );
+    process.exit(1);
+  }
+
   console.clear();
-  p.intro(pc.bgCyan(pc.black(" projectx-cli ")));
+  p.intro(`${pc.bgCyan(pc.black(" projectx-cli "))} ${pc.dim(`v${VERSION}`)}`);
 
   // Alles komt in de map waar je het commando draait: per project.
   const projectDir = process.cwd();
 
   // ---- Vragen (stap voor stap) -------------------------------------------
   const frontend = await askFrontend();
+  // Talen enkel als er een frontend komt; next-intl zelf is geen vraag.
+  const i18n: I18nConfig | null = frontend === "nextjs" ? await askI18n() : null;
   // Volgende stappen (backend, ...) komen hier.
 
   // ---- Controles ---------------------------------------------------------
@@ -31,6 +50,7 @@ async function main(): Promise<void> {
     [
       `${pc.dim("Locatie ")}  ${pc.cyan(projectDir)}`,
       `${pc.dim("Frontend")}  ${pc.cyan(frontendLabel(frontend))}`,
+      ...(i18n ? [`${pc.dim("Talen   ")}  ${pc.cyan(i18nLabel(i18n))}`] : []),
       `${pc.dim("Manager ")}  ${pc.cyan(PACKAGE_MANAGER)}`,
     ].join("\n"),
     "Overzicht",
@@ -43,7 +63,7 @@ async function main(): Promise<void> {
   }
 
   // ---- Installeren -------------------------------------------------------
-  await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER);
+  if (i18n) await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, i18n);
 
   // ---- Volgende stappen --------------------------------------------------
   const steps: string[] = [];

@@ -5,6 +5,7 @@ import pc from "picocolors";
 import { runQuiet } from "../utils/exec.js";
 import { withProgress } from "../utils/progress.js";
 import { orCancel } from "../utils/prompt.js";
+import { setupNextIntl, type I18nConfig } from "./i18n.js";
 import type { PackageManager } from "../types.js";
 
 /** Submap binnen het project voor de frontend. */
@@ -22,7 +23,7 @@ export async function askFrontend(): Promise<Frontend> {
         {
           value: "nextjs",
           label: "Next.js + Tailwind CSS",
-          hint: "laatste versies · TypeScript · ESLint · src/ · Turbopack",
+          hint: "laatste versies · TypeScript · ESLint · src/ · Turbopack · next-intl",
         },
         { value: "none", label: "Geen frontend" },
       ],
@@ -32,7 +33,7 @@ export async function askFrontend(): Promise<Frontend> {
 
 export function frontendLabel(frontend: Frontend): string {
   return frontend === "nextjs"
-    ? `Next.js + Tailwind CSS${pc.dim(`  -> ./${FRONTEND_DIR}`)}`
+    ? `Next.js + Tailwind CSS + next-intl${pc.dim(`  -> ./${FRONTEND_DIR}`)}`
     : "geen";
 }
 
@@ -47,14 +48,14 @@ export function checkFrontend(frontend: Frontend, projectDir: string): string | 
 }
 
 /**
- * Stap 1 — installatie: Next.js (create-next-app@latest) in ./frontend, en
- * daarna Tailwind expliciet op @latest zodat je nooit achterloopt op wat
- * create-next-app toevallig vastpint.
+ * Stap 1 — installatie: Next.js (create-next-app@latest) in ./frontend,
+ * Tailwind expliciet op @latest, en altijd next-intl met de gekozen talen.
  */
 export async function scaffoldFrontend(
   frontend: Frontend,
   projectDir: string,
   pm: PackageManager,
+  i18n: I18nConfig,
 ): Promise<void> {
   if (frontend === "none") {
     p.log.info("Geen frontend gekozen — overgeslagen.");
@@ -90,6 +91,10 @@ export async function scaffoldFrontend(
       update("Tailwind CSS naar de laatste versie");
       await runQuiet(pm, ["install", "--save-dev", "tailwindcss@latest", "@tailwindcss/postcss@latest"], target);
 
+      update("next-intl opzetten");
+      setupNextIntl(target, i18n);
+      await runQuiet(pm, ["install", "next-intl@latest"], target);
+
       update("Turbopack controleren");
       ensureTurbopack(target);
     },
@@ -99,7 +104,10 @@ export async function scaffoldFrontend(
   const versions = readVersions(target);
   p.log.success(
     `Frontend klaar in ./${FRONTEND_DIR}` +
-      pc.dim(`  (next ${versions.next ?? "?"}, tailwindcss ${versions.tailwindcss ?? "?"})`),
+      pc.dim(
+        `  (next ${versions.next ?? "?"}, tailwindcss ${versions.tailwindcss ?? "?"}, next-intl ${versions["next-intl"] ?? "?"}` +
+          ` · talen ${i18n.locales.join(", ")}, standaard ${i18n.defaultLocale})`,
+      ),
   );
 }
 
@@ -134,5 +142,5 @@ function readVersions(target: string): Record<string, string | undefined> {
       return undefined;
     }
   };
-  return { next: read("next"), tailwindcss: read("tailwindcss") };
+  return { next: read("next"), tailwindcss: read("tailwindcss"), "next-intl": read("next-intl") };
 }

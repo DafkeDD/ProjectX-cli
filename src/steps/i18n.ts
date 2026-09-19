@@ -1,54 +1,142 @@
 import fs from "node:fs";
 import path from "node:path";
+import * as p from "@clack/prompts";
+import pc from "picocolors";
+import { orCancel } from "../utils/prompt.js";
 
-/**
- * VASTE REGEL: elke frontend krijgt next-intl, met exact deze 4 talen.
- * Engels is de standaardtaal, en de taal staat nooit in de URL (cookie).
- * Dit is bewust geen vraag in de CLI.
- */
-export const LOCALES = ["en", "de", "nl", "fr"] as const;
-export const DEFAULT_LOCALE = "en";
+/** Alle talen waaruit je kan kiezen in de CLI. */
+export const AVAILABLE_LOCALES = ["en", "nl", "fr", "de", "es", "it", "pt", "pl"] as const;
+export type Locale = (typeof AVAILABLE_LOCALES)[number];
 
-const LOCALE_LABELS: Record<string, { label: string; short: string }> = {
+/** Voorgeselecteerd in de vraag; Engels is de voorgestelde standaardtaal. */
+export const SUGGESTED_LOCALES: Locale[] = ["en", "nl", "fr", "de"];
+export const SUGGESTED_DEFAULT: Locale = "en";
+
+export interface I18nConfig {
+  locales: Locale[];
+  defaultLocale: Locale;
+}
+
+export const LOCALE_LABELS: Record<Locale, { label: string; short: string }> = {
   en: { label: "English", short: "EN" },
-  de: { label: "Deutsch", short: "DE" },
   nl: { label: "Nederlands", short: "NL" },
   fr: { label: "Français", short: "FR" },
+  de: { label: "Deutsch", short: "DE" },
+  es: { label: "Español", short: "ES" },
+  it: { label: "Italiano", short: "IT" },
+  pt: { label: "Português", short: "PT" },
+  pl: { label: "Polski", short: "PL" },
 };
 
-/** Vertalingen voor de startpagina. */
-const MESSAGES: Record<string, Record<string, string>> = {
+/** Vertalingen voor de startpagina. {files} wordt ingevuld met de gekozen talen. */
+const MESSAGES: Record<Locale, Record<string, string>> = {
   en: {
     title: "next-intl works",
     description: "This page is fully translated. Pick a language below — the text changes without a full page reload.",
     currentLanguage: "Current language",
     activeLocale: "Active locale: {locale}",
-    hint: "Translations live in the messages folder: en.json, de.json, nl.json, fr.json. Never hard-code visible text.",
-  },
-  de: {
-    title: "next-intl funktioniert",
-    description: "Diese Seite ist vollständig übersetzt. Wähle unten eine Sprache — der Text ändert sich ohne kompletten Seitenneuaufbau.",
-    currentLanguage: "Aktuelle Sprache",
-    activeLocale: "Aktives Locale: {locale}",
-    hint: "Übersetzungen liegen im messages-Ordner: en.json, de.json, nl.json, fr.json. Sichtbaren Text nie hart codieren.",
+    hint: "Translations live in the messages folder: {files}. Never hard-code visible text.",
   },
   nl: {
     title: "next-intl werkt",
     description: "Deze pagina is volledig vertaald. Kies hieronder een taal — de tekst verandert zonder volledige herlaadbeurt.",
     currentLanguage: "Huidige taal",
     activeLocale: "Actieve locale: {locale}",
-    hint: "Vertalingen staan in de map messages: en.json, de.json, nl.json, fr.json. Zichtbare tekst nooit hard coderen.",
+    hint: "Vertalingen staan in de map messages: {files}. Zichtbare tekst nooit hard coderen.",
   },
   fr: {
     title: "next-intl fonctionne",
     description: "Cette page est entièrement traduite. Choisissez une langue ci-dessous — le texte change sans rechargement complet.",
     currentLanguage: "Langue actuelle",
     activeLocale: "Locale active : {locale}",
-    hint: "Les traductions se trouvent dans le dossier messages : en.json, de.json, nl.json, fr.json. Ne jamais coder en dur le texte visible.",
+    hint: "Les traductions se trouvent dans le dossier messages : {files}. Ne jamais coder en dur le texte visible.",
+  },
+  de: {
+    title: "next-intl funktioniert",
+    description: "Diese Seite ist vollständig übersetzt. Wähle unten eine Sprache — der Text ändert sich ohne kompletten Seitenneuaufbau.",
+    currentLanguage: "Aktuelle Sprache",
+    activeLocale: "Aktives Locale: {locale}",
+    hint: "Übersetzungen liegen im messages-Ordner: {files}. Sichtbaren Text nie hart codieren.",
+  },
+  es: {
+    title: "next-intl funciona",
+    description: "Esta página está totalmente traducida. Elige un idioma abajo: el texto cambia sin recargar la página por completo.",
+    currentLanguage: "Idioma actual",
+    activeLocale: "Idioma activo: {locale}",
+    hint: "Las traducciones están en la carpeta messages: {files}. Nunca escribas texto visible directamente en el código.",
+  },
+  it: {
+    title: "next-intl funziona",
+    description: "Questa pagina è completamente tradotta. Scegli una lingua qui sotto: il testo cambia senza ricaricare l'intera pagina.",
+    currentLanguage: "Lingua attuale",
+    activeLocale: "Lingua attiva: {locale}",
+    hint: "Le traduzioni si trovano nella cartella messages: {files}. Non scrivere mai testo visibile direttamente nel codice.",
+  },
+  pt: {
+    title: "next-intl funciona",
+    description: "Esta página está totalmente traduzida. Escolha um idioma abaixo — o texto muda sem recarregar a página inteira.",
+    currentLanguage: "Idioma atual",
+    activeLocale: "Idioma ativo: {locale}",
+    hint: "As traduções ficam na pasta messages: {files}. Nunca escreva texto visível diretamente no código.",
+  },
+  pl: {
+    title: "next-intl działa",
+    description: "Ta strona jest w pełni przetłumaczona. Wybierz język poniżej — tekst zmienia się bez pełnego przeładowania strony.",
+    currentLanguage: "Bieżący język",
+    activeLocale: "Aktywny język: {locale}",
+    hint: "Tłumaczenia znajdują się w folderze messages: {files}. Nigdy nie wpisuj widocznego tekstu na sztywno w kodzie.",
   },
 };
 
-const SWITCHER_LABEL: Record<string, string> = { en: "Language", de: "Sprache", nl: "Taal", fr: "Langue" };
+const SWITCHER_LABEL: Record<Locale, string> = {
+  en: "Language",
+  nl: "Taal",
+  fr: "Langue",
+  de: "Sprache",
+  es: "Idioma",
+  it: "Lingua",
+  pt: "Idioma",
+  pl: "Język",
+};
+
+/**
+ * Vraag: welke talen, en welke is de standaard? next-intl zelf is geen vraag —
+ * dat komt er altijd bij een Next.js-frontend.
+ */
+export async function askI18n(): Promise<I18nConfig> {
+  const locales = orCancel(
+    await p.multiselect<Locale>({
+      message: `Welke talen wil je? ${pc.dim("(spatie = aan/uit, enter = bevestigen)")}`,
+      initialValues: SUGGESTED_LOCALES,
+      required: true,
+      options: AVAILABLE_LOCALES.map((code) => ({
+        value: code,
+        label: `${LOCALE_LABELS[code].label}`,
+        hint: code,
+      })),
+    }),
+  );
+
+  // Volgorde zoals in de lijst, niet in de volgorde van aanvinken.
+  const ordered = AVAILABLE_LOCALES.filter((l) => locales.includes(l));
+
+  const defaultLocale: Locale =
+    ordered.length === 1
+      ? ordered[0]
+      : orCancel(
+          await p.select<Locale>({
+            message: "Welke taal is de standaard?",
+            initialValue: ordered.includes(SUGGESTED_DEFAULT) ? SUGGESTED_DEFAULT : ordered[0],
+            options: ordered.map((code) => ({ value: code, label: LOCALE_LABELS[code].label, hint: code })),
+          }),
+        );
+
+  return { locales: ordered, defaultLocale };
+}
+
+export function i18nLabel(config: I18nConfig): string {
+  return `${config.locales.join(", ")}${pc.dim(`  standaard: ${config.defaultLocale}`)}`;
+}
 
 function write(file: string, content: string): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -62,13 +150,14 @@ function removeIfExists(file: string): void {
 /**
  * Zet next-intl op in een verse create-next-app: App Router met een
  * [locale]-segment, localePrefix 'never' (taal via cookie, niet in de URL).
- * De package zelf (next-intl@latest) installeert frontend.ts.
+ * Talen en standaardtaal komen uit askI18n(). De package zelf
+ * (next-intl@latest) installeert frontend.ts.
  */
-export function setupNextIntl(target: string): void {
+export function setupNextIntl(target: string, { locales, defaultLocale }: I18nConfig): void {
   const src = path.join(target, "src");
   const appDir = path.join(src, "app");
   const localeDir = path.join(appDir, "[locale]");
-  const localeList = LOCALES.map((l) => `'${l}'`).join(", ");
+  const localeList = locales.map((l) => `'${l}'`).join(", ");
 
   // De startpagina van create-next-app verhuist naar [locale]. De root-layout
   // blijft bestaan (html/body), zodat er later ook routes zonder taal naast
@@ -85,7 +174,7 @@ export function setupNextIntl(target: string): void {
 
 export const routing = defineRouting({
     locales: [${localeList}],
-    defaultLocale: '${DEFAULT_LOCALE}',
+    defaultLocale: '${defaultLocale}',
     // Geen taal in de URL (/about i.p.v. /en/about); de locale gaat via cookie.
     localePrefix: 'never'
 })
@@ -208,7 +297,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
     title: 'App',
-    description: 'Next.js + Tailwind CSS + next-intl (${LOCALES.join("/")})'
+    description: 'Next.js + Tailwind CSS + next-intl (${locales.join("/")})'
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -291,7 +380,7 @@ export default async function Home() {
 `,
   );
 
-  const localeButtons = LOCALES.map((l) => {
+  const localeButtons = locales.map((l) => {
     const meta = LOCALE_LABELS[l];
     return `    { code: '${l}', label: '${meta.label}', short: '${meta.short}' }`;
   }).join(",\n");
@@ -354,10 +443,12 @@ export default function LocaleSwitcher() {
 `,
   );
 
-  for (const locale of LOCALES) {
+  const files = locales.map((l) => `${l}.json`).join(", ");
+  for (const locale of locales) {
+    const home = { ...MESSAGES[locale], hint: MESSAGES[locale].hint.replace("{files}", files) };
     write(
       path.join(target, "messages", `${locale}.json`),
-      JSON.stringify({ HomePage: MESSAGES[locale], LocaleSwitcher: { label: SWITCHER_LABEL[locale] } }, null, 4) + "\n",
+      JSON.stringify({ HomePage: home, LocaleSwitcher: { label: SWITCHER_LABEL[locale] } }, null, 4) + "\n",
     );
   }
 }
