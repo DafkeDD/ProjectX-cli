@@ -26,10 +26,11 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 
 ## De stappen
 
-| #   | Stap     | Keuzes                                                                                       | Resultaat    |
-| --- | -------- | -------------------------------------------------------------------------------------------- | ------------ |
-| 1   | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark + iconen (keuze), of geen | `./frontend` |
-| 2   | Backend  | _volgt_                                                                                      |              |
+| #   | Stap     | Keuzes                                                                                       | Resultaat                        |
+| --- | -------- | -------------------------------------------------------------------------------------------- | -------------------------------- |
+| 1   | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark + iconen (keuze), of geen | `./frontend`                     |
+| 2   | Backend  | _volgt_                                                                                      |                                  |
+| ∞   | GitHub   | pushen? + projectnaam + privé/openbaar                                                       | repo op GitHub, of de commando's |
 
 ### 1. Frontend
 
@@ -153,10 +154,25 @@ frontend/
 
 Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet.
 
+## GitHub — altijd de laatste vraag
+
+1. _Wil je dit naar GitHub pushen?_
+2. bij ja: _Hoe moet het project op GitHub heten?_ (standaard de app-naam als `mijn-super-app`; `organisatie/naam` mag
+   ook) en _Privé of openbaar?_
+
+Na de installatie zet de CLI in de projectmap een `.gitignore` en `README.md`, en dan:
+
+- **ja** → `git init`, eerste commit, `gh repo create <naam> --private|--public --source=. --push`. Nodig: de
+  [GitHub CLI](https://cli.github.com) (`winget install --id GitHub.cli`) en `gh auth login`.
+- **nee**, of `gh`/`git` ontbreekt, of het pushen mislukt → je krijgt de commando's om het zelf te doen: met `gh`, of
+  via github.com/new + `git remote add origin ...` + `git push`.
+
+`.env` gaat nooit mee (wel `.env.example`), `node_modules` en `.next` ook niet.
+
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
-(`projectx-cli v0.10.0`). Klopt die niet, maak dan de npx-cache leeg:
+(`projectx-cli v0.11.0`). Klopt die niet, maak dan de npx-cache leeg:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"
@@ -185,7 +201,8 @@ src/
 │  ├─ editor.ts        eslint-config-prettier + .vscode
 │  ├─ env.ts           app-naam + poort -> .env, src/lib/env.ts, scripts/next.mjs
 │  ├─ ui.ts            ProjectX-UI: vragen, ophalen, npm run ui
-│  └─ ui-templates.ts  startpagina/taalkiezer/themaknop met ProjectX-UI
+│  ├─ ui-templates.ts  startpagina/taalkiezer/themaknop met ProjectX-UI
+│  └─ github.ts        pushen naar GitHub of de commando's tonen
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```
 

@@ -8,6 +8,7 @@ import { askI18n, i18nLabel, type I18nConfig } from './steps/i18n.js'
 import { askIcons, iconsLabel, type IconLibrary } from './steps/icons.js'
 import { askAppName, askPort } from './steps/env.js'
 import { askProjectxUi, uiLabel, type UiChoice } from './steps/ui.js'
+import { askGithub, githubLabel, pushToGithub, writeRootFiles } from './steps/github.js'
 import { orCancel } from './utils/prompt.js'
 import { isGlobalInstall } from './utils/guard.js'
 import type { PackageManager } from './types.js'
@@ -43,6 +44,9 @@ async function main(): Promise<void> {
     const port: number | null = frontend === 'nextjs' ? await askPort() : null
     // Volgende stappen (backend, ...) komen hier.
 
+    // Helemaal als laatste: naar GitHub?
+    const github = await askGithub(app.appName)
+
     // ---- Controles ---------------------------------------------------------
     const problems = [checkFrontend(frontend, projectDir)].filter((x): x is string => !!x)
     if (problems.length > 0) {
@@ -62,6 +66,7 @@ async function main(): Promise<void> {
                 ? [`${pc.dim('UI      ')}  ${pc.cyan(ui ? uiLabel(ui) : 'eigen componenten')}`]
                 : []),
             ...(port ? [`${pc.dim('Poort   ')}  ${pc.cyan(String(port))}${pc.dim('  in frontend/.env')}`] : []),
+            `${pc.dim('GitHub  ')}  ${pc.cyan(githubLabel(github))}`,
             `${pc.dim('Manager ')}  ${pc.cyan(PACKAGE_MANAGER)}`
         ].join('\n'),
         'Overzicht'
@@ -76,6 +81,14 @@ async function main(): Promise<void> {
     // ---- Installeren -------------------------------------------------------
     if (i18n && icons && port)
         await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, { i18n, icons, app, port, ui })
+
+    // ---- Projectmap + GitHub -----------------------------------------------
+    writeRootFiles(
+        projectDir,
+        app.appName,
+        frontend === 'nextjs' ? [{ dir: FRONTEND_DIR, run: `${PACKAGE_MANAGER} run dev` }] : []
+    )
+    await pushToGithub(github, projectDir)
 
     // ---- Volgende stappen --------------------------------------------------
     const steps: string[] = []
