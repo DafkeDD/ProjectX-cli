@@ -192,6 +192,108 @@ html.dark {
 }
 `
 
+/**
+ * globals.css met ProjectX-UI: de kleuren komen uit de UI-tokens
+ * (src/components/ui/tokens.css). De Tailwind-namen (bg-card, text-muted-
+ * foreground, ...) blijven werken maar wijzen nu naar die tokens.
+ *
+ * De UI-CSS gaat in de cascade-laag "components": zo kunnen Tailwind-
+ * utilities (laag "utilities") een component nog aanpassen, zoals bij shadcn.
+ */
+const UI_GLOBALS_CSS = `@import 'tailwindcss';
+
+/* ProjectX-UI: tokens, basislaag en alle component-CSS.
+   Wordt aangevuld telkens je \`npm run ui -- add ...\` draait. */
+@import '../components/ui/ui.css' layer(components);
+
+/* ============================================================
+   DARK MODE (Tailwind 4)
+   .dark          = expliciet donker
+   .theme-system  = volg de systeemvoorkeur
+   (de UI-tokens schakelen zelf via [data-theme] op <html>)
+   ============================================================ */
+@custom-variant dark {
+    &:where(.dark, .dark *) {
+        @slot;
+    }
+    @media (prefers-color-scheme: dark) {
+        &:where(.theme-system, .theme-system *) {
+            @slot;
+        }
+    }
+}
+
+/* Lettertypes van het ProjectX-design, geladen via next/font in layout.tsx. */
+:root {
+    --font: var(--font-sans-ui), -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: var(--font-mono-ui), ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* ============================================================
+   TAILWIND 4 MAPPING — ProjectX-UI-tokens -> utility classes
+   De kleuren zelf pas je aan in src/components/ui/tokens.css.
+   ============================================================ */
+@theme inline {
+    --font-sans: var(--font);
+    --font-mono: var(--mono);
+
+    --color-background: var(--bg);
+    --color-foreground: var(--text);
+
+    --color-card: var(--surface);
+    --color-card-foreground: var(--text);
+
+    --color-primary: var(--accent);
+    --color-primary-foreground: var(--accent-fg);
+
+    --color-secondary: var(--surface-3);
+    --color-secondary-foreground: var(--text);
+
+    --color-muted: var(--surface-2);
+    --color-muted-foreground: var(--text-2);
+
+    --color-accent: var(--accent-tint);
+    --color-accent-foreground: var(--accent-active);
+
+    --color-destructive: var(--red);
+    --color-destructive-foreground: var(--text-inv);
+
+    --color-border: var(--border);
+    --color-input: var(--border-strong);
+    --color-ring: var(--accent);
+
+    --radius-sm: var(--r-xs);
+    --radius-md: var(--r-sm);
+    --radius-lg: var(--r-md);
+    --radius-xl: var(--r-lg);
+}
+
+/* ============================================================
+   BASIS — achtergrond en tekst komen uit de UI-basislaag
+   ============================================================ */
+html {
+    color-scheme: light;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    html.theme-system {
+        color-scheme: dark;
+    }
+}
+
+:focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+}
+`
+
 /** Gedeeld tussen server (layout) en client (provider): welke class hoort bij welk thema. */
 const THEME_LIB = `export type Theme = 'light' | 'dark' | 'system'
 
@@ -209,6 +311,14 @@ export function themeClass(theme: Theme): string | undefined {
     if (theme === 'dark') return 'dark'
     if (theme === 'system') return 'theme-system'
     return undefined
+}
+
+/**
+ * data-theme op <html> (voor ProjectX-UI-tokens). Bij 'system' niets: de
+ * tokens volgen dan zelf prefers-color-scheme.
+ */
+export function themeAttribute(theme: Theme): 'light' | 'dark' | undefined {
+    return theme === 'system' ? undefined : theme
 }
 `
 
@@ -234,7 +344,7 @@ const THEME_PROVIDER = `'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { saveTheme } from './actions'
-import { THEMES, themeClass, type Theme } from './theme'
+import { THEMES, themeAttribute, themeClass, type Theme } from './theme'
 
 interface ThemeContextValue {
     /** Voorkeur van de gebruiker. */
@@ -280,6 +390,10 @@ export function ThemeProvider({ children, initialTheme = 'system' }: { children:
         root.classList.remove('dark', 'theme-system')
         const cls = themeClass(theme)
         if (cls) root.classList.add(cls)
+
+        const attr = themeAttribute(theme)
+        if (attr) root.setAttribute('data-theme', attr)
+        else root.removeAttribute('data-theme')
     }, [theme])
 
     const setTheme = useCallback((next: Theme) => {
@@ -358,11 +472,11 @@ export default function ThemeToggle() {
 }
 
 /** Schrijft globals.css en de thema-bestanden. De layout zet i18n.ts. */
-export function setupTheme(target: string, icons: IconLibrary): void {
+export function setupTheme(target: string, icons: IconLibrary, ui: boolean): void {
     const src = path.join(target, 'src')
     const dir = path.join(src, 'components', 'theme')
 
-    write(path.join(src, 'app', 'globals.css'), GLOBALS_CSS)
+    write(path.join(src, 'app', 'globals.css'), ui ? UI_GLOBALS_CSS : GLOBALS_CSS)
     write(path.join(dir, 'theme.ts'), THEME_LIB)
     write(path.join(dir, 'actions.ts'), THEME_ACTIONS)
     write(path.join(dir, 'ThemeProvider.tsx'), THEME_PROVIDER)

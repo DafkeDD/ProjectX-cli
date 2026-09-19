@@ -7,6 +7,7 @@ import { askFrontend, checkFrontend, frontendLabel, scaffoldFrontend, FRONTEND_D
 import { askI18n, i18nLabel, type I18nConfig } from './steps/i18n.js'
 import { askIcons, iconsLabel, type IconLibrary } from './steps/icons.js'
 import { askAppName, askPort } from './steps/env.js'
+import { askProjectxUi } from './steps/ui.js'
 import { orCancel } from './utils/prompt.js'
 import { isGlobalInstall } from './utils/guard.js'
 import type { PackageManager } from './types.js'
@@ -38,6 +39,7 @@ async function main(): Promise<void> {
     // Talen enkel als er een frontend komt; next-intl zelf is geen vraag.
     const i18n: I18nConfig | null = frontend === 'nextjs' ? await askI18n() : null
     const icons: IconLibrary | null = frontend === 'nextjs' ? await askIcons() : null
+    const ui = frontend === 'nextjs' ? await askProjectxUi() : false
     const port: number | null = frontend === 'nextjs' ? await askPort() : null
     // Volgende stappen (backend, ...) komen hier.
 
@@ -56,6 +58,11 @@ async function main(): Promise<void> {
             `${pc.dim('Frontend')}  ${pc.cyan(frontendLabel(frontend))}`,
             ...(i18n ? [`${pc.dim('Talen   ')}  ${pc.cyan(i18nLabel(i18n))}`] : []),
             ...(icons ? [`${pc.dim('Iconen  ')}  ${pc.cyan(iconsLabel(icons))}`] : []),
+            ...(frontend === 'nextjs'
+                ? [
+                      `${pc.dim('UI      ')}  ${pc.cyan(ui ? 'ProjectX-UI' : 'eigen componenten')}${pc.dim(ui ? '  alle componenten + design tokens' : '')}`
+                  ]
+                : []),
             ...(port ? [`${pc.dim('Poort   ')}  ${pc.cyan(String(port))}${pc.dim('  in frontend/.env')}`] : []),
             `${pc.dim('Manager ')}  ${pc.cyan(PACKAGE_MANAGER)}`
         ].join('\n'),
@@ -69,7 +76,8 @@ async function main(): Promise<void> {
     }
 
     // ---- Installeren -------------------------------------------------------
-    if (i18n && icons && port) await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, i18n, icons, app, port)
+    if (i18n && icons && port)
+        await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, { i18n, icons, app, port, ui })
 
     // ---- Volgende stappen --------------------------------------------------
     const steps: string[] = []

@@ -11,6 +11,7 @@ import { iconPackages, setupIcons, type IconLibrary } from './icons.js'
 import { setupRules } from './rules.js'
 import { setupEslintPrettier, setupVsCode } from './editor.js'
 import { setupEnv, type AppConfig } from './env.js'
+import { installProjectxUi, UI_COMPONENTS_DIR, type UiResult } from './ui.js'
 import { setupPrettier, formatAll } from '../utils/prettier.js'
 import type { PackageManager } from '../types.js'
 
@@ -58,14 +59,20 @@ export function checkFrontend(frontend: Frontend, projectDir: string): string | 
  * Tailwind expliciet op @latest, en altijd next-intl (gekozen talen) en
  * light/dark mode (theme.ts), Prettier en regels voor AI-assistenten.
  */
+export interface FrontendOptions {
+    i18n: I18nConfig
+    icons: IconLibrary
+    app: AppConfig
+    port: number
+    /** ProjectX-UI installeren? */
+    ui: boolean
+}
+
 export async function scaffoldFrontend(
     frontend: Frontend,
     projectDir: string,
     pm: PackageManager,
-    i18n: I18nConfig,
-    icons: IconLibrary,
-    app: AppConfig,
-    port: number
+    { i18n, icons, app, port, ui }: FrontendOptions
 ): Promise<void> {
     if (frontend === 'none') {
         p.log.info('Geen frontend gekozen — overgeslagen.')
@@ -74,6 +81,8 @@ export async function scaffoldFrontend(
 
     const target = path.join(projectDir, FRONTEND_DIR)
     let vscode = false
+    /** Resultaat van ProjectX-UI; bij een fout gaat de rest gewoon door met de eigen tokens. */
+    let uiResult = null as UiResult | null
 
     await withProgress(
         'Next.js installeren (laatste versie)',
@@ -102,9 +111,15 @@ export async function scaffoldFrontend(
             update('Tailwind CSS naar de laatste versie')
             await runQuiet(pm, ['install', '--save-dev', 'tailwindcss@latest', '@tailwindcss/postcss@latest'], target)
 
+            if (ui) {
+                update('ProjectX-UI ophalen van GitHub (alle componenten)')
+                uiResult = await installProjectxUi(target)
+            }
+            const withUi = uiResult?.ok === true
+
             update('next-intl + light/dark mode + iconen opzetten')
-            setupTheme(target, icons)
-            setupNextIntl(target, i18n)
+            setupTheme(target, icons, withUi)
+            setupNextIntl(target, i18n, withUi)
             setupIcons(target, icons)
             await runQuiet(pm, ['install', 'next-intl@latest', ...iconPackages(icons)], target)
 
@@ -112,14 +127,14 @@ export async function scaffoldFrontend(
             setupEnv(target, app, port)
 
             update('Regels voor AI-assistenten schrijven')
-            setupRules(target, i18n, icons)
+            setupRules(target, i18n, icons, withUi)
 
             update('Turbopack controleren')
             ensureTurbopack(target)
 
             update('Prettier + ESLint + VS Code instellen en alles formatteren')
             await setupPrettier(pm, target)
-            await setupEslintPrettier(pm, target)
+            await setupEslintPrettier(pm, target, withUi)
             vscode = setupVsCode(projectDir, [FRONTEND_DIR])
             await formatAll(pm, target)
         },
@@ -134,6 +149,17 @@ export async function scaffoldFrontend(
                     ` · talen ${i18n.locales.join(', ')}, standaard ${i18n.defaultLocale})`
             )
     )
+    if (uiResult?.ok) {
+        p.log.success(
+            `ProjectX-UI: ${uiResult.count} componenten in ./${FRONTEND_DIR}/${UI_COMPONENTS_DIR}` +
+                pc.dim(`  (import { Button } from '@/components/ui' · bijwerken: npm run ui -- add --all --force)`)
+        )
+    } else if (uiResult) {
+        p.log.warn(
+            `ProjectX-UI installeren is niet gelukt: ${uiResult.error}\n` +
+                'De frontend gebruikt zijn eigen tokens — verder werkt alles. Later alsnog: draai de CLI opnieuw in een lege map.'
+        )
+    }
     p.log.info(
         vscode
             ? `VS Code-instellingen in ./.vscode ${pc.dim('(open de projectmap in VS Code en installeer de aanbevolen extensies)')}`

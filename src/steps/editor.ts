@@ -13,7 +13,7 @@ function writeJson(file: string, data: unknown): void {
  * ESLint-regels uit die over opmaak gaan, zodat alleen Prettier daarover
  * beslist. Komt als laatste in de flat config.
  */
-export async function setupEslintPrettier(pm: PackageManager, target: string): Promise<void> {
+export async function setupEslintPrettier(pm: PackageManager, target: string, ui = false): Promise<void> {
     fs.writeFileSync(
         path.join(target, 'eslint.config.mjs'),
         `import { defineConfig, globalIgnores } from 'eslint/config'
@@ -24,7 +24,22 @@ import prettier from 'eslint-config-prettier/flat'
 const eslintConfig = defineConfig([
     ...nextVitals,
     ...nextTs,
-    // Als laatste: zet opmaakregels uit, daar beslist Prettier over.
+${
+    ui
+        ? `    // ProjectX-UI (src/components/ui) wordt beheerd vanuit zijn eigen repo: de nieuwe
+    // React Compiler-regels daar als waarschuwing, zodat je ze ziet maar lint niet faalt.
+    // Oplossen hoort in github.com/DafkeDD/ProjectX-ui, daarna: npm run ui -- add --all --force
+    {
+        files: ['src/components/ui/**'],
+        rules: {
+            'react-hooks/immutability': 'warn',
+            'react-hooks/refs': 'warn',
+            'react-hooks/set-state-in-effect': 'warn'
+        }
+    },
+`
+        : ''
+}    // Als laatste: zet opmaakregels uit, daar beslist Prettier over.
     prettier,
     globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts'])
 ])

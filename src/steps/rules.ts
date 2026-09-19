@@ -41,7 +41,117 @@ import { faHouse } from '@fortawesome/free-solid-svg-icons'
     return '```tsx\n' + parts.join('\n\n') + '\n```'
 }
 
-function agentsBlock({ locales, defaultLocale }: I18nConfig, icons: IconLibrary): string {
+function agentsUi(ui: boolean, icons: IconLibrary): string {
+    if (!ui) {
+        return `## 2. UI-componenten — altijd zelf bouwen
+
+Niets uit een component library: geen shadcn/ui, Radix, MUI, Chakra, Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI.
+Componenten komen in \`src/components/ui/\`, met Tailwind en de design tokens. \`clsx\` en \`tailwind-merge\` mogen wel.
+
+${iconRule(icons)}`
+    }
+    return `## 2. UI-componenten — ProjectX-UI eerst
+
+- Gebruik **altijd eerst ProjectX-UI**: \`import { Button, Dialog, Table } from '@/components/ui'\`. Bouw nooit een
+  component na dat daar al bestaat (lijst: \`npm run ui -- list\`).
+- \`src/components/ui/\` wordt beheerd vanuit github.com/DafkeDD/ProjectX-ui. **Niet met de hand aanpassen** — wijzig
+  de library en haal op met \`npm run ui -- add --all --force\`. Eigen componenten komen in \`src/components/\`.
+- Geen andere component library: geen shadcn/ui, Radix, MUI, Chakra, Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI.
+- CSS-klassen van de library beginnen met \`pxui-\`; hergebruik die niet in eigen code, gebruik Tailwind + tokens.
+
+${iconRule(icons)} ProjectX-UI heeft ook een eigen icon set (\`Icon\` uit \`@/components/ui\`).`
+}
+
+function projectUi(ui: boolean, icons: IconLibrary): string {
+    if (!ui) {
+        return `## 2. UI-componenten — altijd zelf bouwen
+
+**Niets uit een component library.** Niet uit shadcn/ui, Radix, MUI, Chakra,
+Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI of wat dan ook. Elke knop,
+input, modal, dropdown, tabel en badge wordt zelf geschreven in
+\`src/components/ui/\`, met Tailwind en de design tokens.
+
+- \`npx shadcn@latest add ...\` wordt in dit project nooit gedraaid.
+- Utility-libraries zonder componenten (\`clsx\`, \`tailwind-merge\`) mogen wel.
+- ${iconRule(icons)}
+
+${iconExample(icons)}
+
+\`\`\`tsx
+// src/components/ui/Button.tsx — zo hoort een component eruit te zien
+import type { ButtonHTMLAttributes } from 'react'
+
+type Variant = 'primary' | 'secondary' | 'ghost'
+
+const VARIANTS: Record<Variant, string> = {
+    primary: 'bg-primary text-primary-foreground hover:opacity-90',
+    secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
+    ghost: 'hover:bg-muted'
+}
+
+export function Button({
+    variant = 'primary',
+    className = '',
+    ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+    return (
+        <button
+            className={\`inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors disabled:opacity-50 \${VARIANTS[variant]} \${className}\`}
+            {...props}
+        />
+    )
+}
+\`\`\``
+    }
+    return `## 2. UI-componenten — ProjectX-UI
+
+Dit project gebruikt **ProjectX-UI** (github.com/DafkeDD/ProjectX-ui): 68 eigen
+componenten, als broncode in \`src/components/ui/\` — zoals shadcn, maar
+volledig zelf gebouwd.
+
+| | |
+|---|---|
+| Importeren | \`import { Button, Card, Dialog } from '@/components/ui'\` |
+| Overzicht | \`npm run ui -- list\` |
+| Eén toevoegen | \`npm run ui -- add <naam>\` |
+| Alles bijwerken | \`npm run ui -- add --all --force\` |
+| Kleuren | \`src/components/ui/tokens.css\` (licht + \`[data-theme="dark"]\`) |
+
+1. **Eerst ProjectX-UI.** Bestaat een component al in de library, gebruik
+   dat. Nooit een eigen knop, dialog of tabel bouwen naast de bestaande.
+2. **\`src/components/ui/\` niet met de hand aanpassen.** Die map wordt
+   overschreven bij het bijwerken. Een fout of nieuw component hoort in de
+   ProjectX-UI-repo; daarna \`npm run ui -- add --all --force\`.
+3. **Eigen componenten** (samenstellingen voor dit project) komen in
+   \`src/components/\`, opgebouwd uit ProjectX-UI + Tailwind + tokens.
+4. **Geen andere component library** (shadcn/ui, Radix, MUI, Chakra, ...).
+5. De Tailwind-namen (\`bg-card\`, \`text-muted-foreground\`, \`bg-primary\`, ...)
+   wijzen naar de ProjectX-UI-tokens — ze blijven dus bruikbaar én passen
+   bij de library.
+6. ${iconRule(icons)} ProjectX-UI heeft daarnaast een eigen icon set
+   (\`Icon\` uit \`@/components/ui\`).
+
+\`\`\`tsx
+import { Badge, Button, Card, CardHeader, CardTitle } from '@/components/ui'
+
+export function Voorbeeld() {
+    const t = useTranslations('Voorbeeld')
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{t('title')}</CardTitle>
+            </CardHeader>
+            <Badge tone='accent'>{t('status')}</Badge>
+            <Button>{t('save')}</Button>
+        </Card>
+    )
+}
+\`\`\`
+
+${iconExample(icons)}`
+}
+
+function agentsBlock({ locales, defaultLocale }: I18nConfig, icons: IconLibrary, ui: boolean): string {
     return `
 ${BEGIN}
 
@@ -68,18 +178,13 @@ Talen: ${locales.map(code).join(', ')}. Standaardtaal: ${code(defaultLocale)}. D
 - \`npm run dev\` / \`npm run start\` lopen via \`scripts/next.mjs\`, dat \`PORT\` uit \`.env\` leest. Niet vervangen door
   \`next dev\`.
 
-## 2. UI-componenten — altijd zelf bouwen
-
-Niets uit een component library: geen shadcn/ui, Radix, MUI, Chakra, Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI.
-Componenten komen in \`src/components/ui/\`, met Tailwind en de design tokens. \`clsx\` en \`tailwind-merge\` mogen wel.
-
-${iconRule(icons)}
+${agentsUi(ui, icons)}
 
 ## 3. Light/dark mode — altijd
 
 - Kleuren **alleen** via design tokens: \`bg-background\`, \`text-foreground\`, \`bg-card\`, \`border-border\`,
   \`text-muted-foreground\`, \`bg-primary\`, ... Nooit \`bg-white\`, \`text-black\` of hex-kleuren in componenten.
-- Nieuwe kleur = nieuw token in \`src/app/globals.css\`, in \`:root\` én in \`.dark\` / \`.theme-system\`.
+- Nieuwe kleur = nieuw token in ${ui ? '\`src/components/ui/tokens.css\` (licht én \`[data-theme="dark"]\`) + mapping in \`globals.css\`' : '\`src/app/globals.css\`, in \`:root\` én in \`.dark\` / \`.theme-system\`'}.
 - De voorkeur staat in de \`theme\`-cookie, **nooit** in localStorage. Gebruik \`useTheme()\`.
 
 ## 4. Code-stijl — Prettier
@@ -92,7 +197,7 @@ ${END}
 `
 }
 
-function projectRules({ locales, defaultLocale }: I18nConfig, icons: IconLibrary): string {
+function projectRules({ locales, defaultLocale }: I18nConfig, icons: IconLibrary, ui: boolean): string {
     const langRows = locales.map(l => `${code(l)} (${LOCALE_LABELS[l].label})`).join(', ')
     return `# Projectregels
 
@@ -171,44 +276,7 @@ je met apostrofs: \`'{'\` of \`'<'\`.
 
 ---
 
-## 2. UI-componenten — altijd zelf bouwen
-
-**Niets uit een component library.** Niet uit shadcn/ui, Radix, MUI, Chakra,
-Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI of wat dan ook. Elke knop,
-input, modal, dropdown, tabel en badge wordt zelf geschreven in
-\`src/components/ui/\`, met Tailwind en de design tokens.
-
-- \`npx shadcn@latest add ...\` wordt in dit project nooit gedraaid.
-- Utility-libraries zonder componenten (\`clsx\`, \`tailwind-merge\`) mogen wel.
-- ${iconRule(icons)}
-
-${iconExample(icons)}
-
-\`\`\`tsx
-// src/components/ui/Button.tsx — zo hoort een component eruit te zien
-import type { ButtonHTMLAttributes } from 'react'
-
-type Variant = 'primary' | 'secondary' | 'ghost'
-
-const VARIANTS: Record<Variant, string> = {
-    primary: 'bg-primary text-primary-foreground hover:opacity-90',
-    secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
-    ghost: 'hover:bg-muted'
-}
-
-export function Button({
-    variant = 'primary',
-    className = '',
-    ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-    return (
-        <button
-            className={\`inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors disabled:opacity-50 \${VARIANTS[variant]} \${className}\`}
-            {...props}
-        />
-    )
-}
-\`\`\`
+${projectUi(ui, icons)}
 
 ---
 
@@ -257,13 +325,13 @@ export function Button({
 }
 
 /** Schrijft PROJECT-RULES.md en voegt het regelblok toe aan AGENTS.md. */
-export function setupRules(target: string, i18n: I18nConfig, icons: IconLibrary): void {
-    fs.writeFileSync(path.join(target, 'PROJECT-RULES.md'), projectRules(i18n, icons), 'utf8')
+export function setupRules(target: string, i18n: I18nConfig, icons: IconLibrary, ui = false): void {
+    fs.writeFileSync(path.join(target, 'PROJECT-RULES.md'), projectRules(i18n, icons, ui), 'utf8')
 
     const agentsFile = path.join(target, 'AGENTS.md')
     const existing = fs.existsSync(agentsFile) ? fs.readFileSync(agentsFile, 'utf8') : ''
     if (!existing.includes(BEGIN)) {
-        fs.writeFileSync(agentsFile, existing.trimEnd() + '\n' + agentsBlock(i18n, icons), 'utf8')
+        fs.writeFileSync(agentsFile, existing.trimEnd() + '\n' + agentsBlock(i18n, icons, ui), 'utf8')
     }
 
     // Zorgt dat Claude Code AGENTS.md meeleest, ook als create-next-app dat ooit niet meer doet.

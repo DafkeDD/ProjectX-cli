@@ -175,7 +175,7 @@ function removeIfExists(file: string): void {
  * plek: src/i18n/locales.ts. De paginatitel is env.appName (.env). De package zelf
  * (next-intl@latest) installeert frontend.ts.
  */
-export function setupNextIntl(target: string, { locales, defaultLocale }: I18nConfig): void {
+export function setupNextIntl(target: string, { locales, defaultLocale }: I18nConfig, ui = false): void {
     const src = path.join(target, 'src')
     const appDir = path.join(src, 'app')
     const localeDir = path.join(appDir, '[locale]')
@@ -327,23 +327,36 @@ export default withNextIntl(nextConfig)
     // thema uit de cookie (server-side, dus geen flits).
     write(
         path.join(appDir, 'layout.tsx'),
-        `import { Geist, Geist_Mono } from 'next/font/google'
+        `import { ${ui ? 'Hanken_Grotesk, JetBrains_Mono' : 'Geist, Geist_Mono'} } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
-import { isTheme, themeClass, THEME_COOKIE, type Theme } from '@/components/theme/theme'
+import { isTheme, themeAttribute, themeClass, THEME_COOKIE, type Theme } from '@/components/theme/theme'
 import './globals.css'
 
-const geistSans = Geist({
+${
+    ui
+        ? `// Lettertypes van het ProjectX-design (zie --font / --mono in globals.css).
+const fontSans = Hanken_Grotesk({
+    variable: '--font-sans-ui',
+    subsets: ['latin']
+})
+
+const fontMono = JetBrains_Mono({
+    variable: '--font-mono-ui',
+    subsets: ['latin']
+})`
+        : `const fontSans = Geist({
     variable: '--font-geist-sans',
     subsets: ['latin']
 })
 
-const geistMono = Geist_Mono({
+const fontMono = Geist_Mono({
     variable: '--font-geist-mono',
     subsets: ['latin']
-})
+})`
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
     // Routes buiten [locale] hebben geen taalcontext: dan de standaardtaal.
@@ -358,12 +371,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const cookieTheme = (await cookies()).get(THEME_COOKIE)?.value
     const theme: Theme = isTheme(cookieTheme) ? cookieTheme : 'system'
 
-    const className = [geistSans.variable, geistMono.variable, themeClass(theme), 'h-full antialiased']
+    const className = [fontSans.variable, fontMono.variable, themeClass(theme), 'h-full antialiased']
         .filter(Boolean)
         .join(' ')
 
     return (
-        <html lang={locale} className={className} suppressHydrationWarning>
+        <html lang={locale} className={className} data-theme={themeAttribute(theme)} suppressHydrationWarning>
             <body className='bg-background text-foreground flex min-h-full flex-col'>
                 <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>
             </body>
@@ -424,7 +437,7 @@ export default async function LocaleLayout({
 import LocaleSwitcher from '@/components/LocaleSwitcher'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { routing } from '@/i18n/routing'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env'${ui ? "\nimport { Badge } from '@/components/ui'" : ''}
 
 export default async function Home() {
     const t = await getTranslations('HomePage')
@@ -434,7 +447,13 @@ export default async function Home() {
     return (
         <main className='flex flex-1 flex-col items-center justify-center p-8'>
             <div className='w-full max-w-xl border-border bg-card text-card-foreground rounded-xl border p-8 text-center'>
-                <p className='text-primary mb-2 text-sm font-medium'>{env.appName}</p>
+${
+    ui
+        ? `                <Badge tone='accent' className='mb-3'>
+                    {env.appName}
+                </Badge>`
+        : `                <p className='text-primary mb-2 text-sm font-medium'>{env.appName}</p>`
+}
                 <h1 className='text-3xl font-semibold tracking-tight'>{t('title')}</h1>
                 <p className='text-muted-foreground mt-3 text-sm leading-relaxed'>{t('description')}</p>
 
