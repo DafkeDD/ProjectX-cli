@@ -1,1 +1,1 @@
-export type PackageManager = "npm";
+export type PackageManager = 'npm'

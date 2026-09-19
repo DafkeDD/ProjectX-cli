@@ -1,7 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
-import { LOCALE_LABELS, type I18nConfig } from "./i18n.js";
-import { usesFontAwesome, usesReactIcons, type IconLibrary } from "./icons.js";
+import fs from 'node:fs'
+import path from 'node:path'
+import { LOCALE_LABELS, type I18nConfig } from './i18n.js'
+import { usesFontAwesome, usesReactIcons, type IconLibrary } from './icons.js'
 
 /**
  * Regels voor AI-assistenten (Claude Code, Copilot, Cursor, Codex, ...).
@@ -13,36 +13,36 @@ import { usesFontAwesome, usesReactIcons, type IconLibrary } from "./icons.js";
  * De regels volgen de keuzes uit de CLI (talen, iconen).
  */
 
-const BEGIN = "<!-- BEGIN:projectx-rules -->";
-const END = "<!-- END:projectx-rules -->";
+const BEGIN = '<!-- BEGIN:projectx-rules -->'
+const END = '<!-- END:projectx-rules -->'
 
-const code = (s: string) => `\`${s}\``;
+const code = (s: string) => `\`${s}\``
 
 function iconRule(icons: IconLibrary): string {
-  const libs: string[] = [];
-  if (usesReactIcons(icons)) libs.push(code("react-icons"));
-  if (usesFontAwesome(icons)) libs.push(`Font Awesome (${code("@fortawesome/react-fontawesome")})`);
-  return `Iconen komen **uitsluitend** uit ${libs.join(" of ")}. Nooit ${code("lucide-react")} of losse SVG-packs.`;
+    const libs: string[] = []
+    if (usesReactIcons(icons)) libs.push(code('react-icons'))
+    if (usesFontAwesome(icons)) libs.push(`Font Awesome (${code('@fortawesome/react-fontawesome')})`)
+    return `Iconen komen **uitsluitend** uit ${libs.join(' of ')}. Nooit ${code('lucide-react')} of losse SVG-packs.`
 }
 
 function iconExample(icons: IconLibrary): string {
-  const parts: string[] = [];
-  if (usesReactIcons(icons)) {
-    parts.push(`// React Icons
+    const parts: string[] = []
+    if (usesReactIcons(icons)) {
+        parts.push(`// React Icons
 import { MdHome } from 'react-icons/md'
-<MdHome size={20} />`);
-  }
-  if (usesFontAwesome(icons)) {
-    parts.push(`// Font Awesome
+<MdHome size={20} />`)
+    }
+    if (usesFontAwesome(icons)) {
+        parts.push(`// Font Awesome
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHouse } from '@fortawesome/free-solid-svg-icons'
-<FontAwesomeIcon icon={faHouse} />`);
-  }
-  return "```tsx\n" + parts.join("\n\n") + "\n```";
+<FontAwesomeIcon icon={faHouse} />`)
+    }
+    return '```tsx\n' + parts.join('\n\n') + '\n```'
 }
 
 function agentsBlock({ locales, defaultLocale }: I18nConfig, icons: IconLibrary): string {
-  return `
+    return `
 ${BEGIN}
 
 # Projectregels (niet verwijderen)
@@ -51,10 +51,10 @@ Volledige uitleg met voorbeelden: \`PROJECT-RULES.md\`.
 
 ## 1. i18n — altijd next-intl
 
-Talen: ${locales.map(code).join(", ")}. Standaardtaal: ${code(defaultLocale)}. De taal staat nooit in de URL.
+Talen: ${locales.map(code).join(', ')}. Standaardtaal: ${code(defaultLocale)}. De taal staat nooit in de URL.
 
 - Zichtbare tekst **nooit** hard coderen — altijd \`useTranslations()\` (client) of \`getTranslations()\` (server).
-- Elke nieuwe key in **alle** bestanden onder \`messages/\` (${locales.map((l) => code(`${l}.json`)).join(", ")}).
+- Elke nieuwe key in **alle** bestanden onder \`messages/\` (${locales.map(l => code(`${l}.json`)).join(', ')}).
 - Nieuwe pagina's onder \`src/app/[locale]/\`, nooit direct onder \`src/app/\`.
 - Interne navigatie via \`@/i18n/navigation\`, niet via \`next/link\` of \`next/navigation\`.
 
@@ -79,12 +79,12 @@ ${iconRule(icons)}
 - Cookies zet je via een server action (zie \`src/i18n/actions.ts\`), niet met \`document.cookie\`.
 
 ${END}
-`;
+`
 }
 
 function projectRules({ locales, defaultLocale }: I18nConfig, icons: IconLibrary): string {
-  const langRows = locales.map((l) => `${code(l)} (${LOCALE_LABELS[l].label})`).join(", ");
-  return `# Projectregels
+    const langRows = locales.map(l => `${code(l)} (${LOCALE_LABELS[l].label})`).join(', ')
+    return `# Projectregels
 
 Deze regels zijn aangemaakt door projectx-cli en gelden voor alles wat er later
 bijkomt — voor mensen én voor AI-assistenten (die lezen het blok in
@@ -99,7 +99,7 @@ bijkomt — voor mensen én voor AI-assistenten (die lezen het blok in
 | Talen | ${langRows} |
 | Standaardtaal | ${code(defaultLocale)} |
 | URL-prefix | \`never\` — de taal staat in de cookie \`NEXT_LOCALE\`, niet in de URL |
-| Vertalingen | \`messages/\` (${locales.map((l) => code(`${l}.json`)).join(", ")}) |
+| Vertalingen | \`messages/\` (${locales.map(l => code(`${l}.json`)).join(', ')}) |
 | Routing | \`src/app/[locale]/...\` |
 
 1. **Geen enkele zichtbare tekst hard coderen.** Alles komt uit
@@ -219,23 +219,23 @@ export function Button({
   de lintregel \`react-hooks/immutability\` af.
 - Geen \`setState\` rechtstreeks in een \`useEffect\`; voor externe bronnen
   (media queries, events) gebruik je \`useSyncExternalStore\`.
-`;
+`
 }
 
 /** Schrijft PROJECT-RULES.md en voegt het regelblok toe aan AGENTS.md. */
 export function setupRules(target: string, i18n: I18nConfig, icons: IconLibrary): void {
-  fs.writeFileSync(path.join(target, "PROJECT-RULES.md"), projectRules(i18n, icons), "utf8");
+    fs.writeFileSync(path.join(target, 'PROJECT-RULES.md'), projectRules(i18n, icons), 'utf8')
 
-  const agentsFile = path.join(target, "AGENTS.md");
-  const existing = fs.existsSync(agentsFile) ? fs.readFileSync(agentsFile, "utf8") : "";
-  if (!existing.includes(BEGIN)) {
-    fs.writeFileSync(agentsFile, existing.trimEnd() + "\n" + agentsBlock(i18n, icons), "utf8");
-  }
+    const agentsFile = path.join(target, 'AGENTS.md')
+    const existing = fs.existsSync(agentsFile) ? fs.readFileSync(agentsFile, 'utf8') : ''
+    if (!existing.includes(BEGIN)) {
+        fs.writeFileSync(agentsFile, existing.trimEnd() + '\n' + agentsBlock(i18n, icons), 'utf8')
+    }
 
-  // Zorgt dat Claude Code AGENTS.md meeleest, ook als create-next-app dat ooit niet meer doet.
-  const claudeFile = path.join(target, "CLAUDE.md");
-  const claude = fs.existsSync(claudeFile) ? fs.readFileSync(claudeFile, "utf8") : "";
-  if (!claude.includes("@AGENTS.md")) {
-    fs.writeFileSync(claudeFile, (claude.trimEnd() ? claude.trimEnd() + "\n" : "") + "@AGENTS.md\n", "utf8");
-  }
+    // Zorgt dat Claude Code AGENTS.md meeleest, ook als create-next-app dat ooit niet meer doet.
+    const claudeFile = path.join(target, 'CLAUDE.md')
+    const claude = fs.existsSync(claudeFile) ? fs.readFileSync(claudeFile, 'utf8') : ''
+    if (!claude.includes('@AGENTS.md')) {
+        fs.writeFileSync(claudeFile, (claude.trimEnd() ? claude.trimEnd() + '\n' : '') + '@AGENTS.md\n', 'utf8')
+    }
 }

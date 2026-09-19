@@ -1,35 +1,45 @@
 {
-  "name": "projectx-cli",
-  "version": "0.5.0",
-  "description": "Interactieve CLI die stap voor stap een project opzet in de huidige map.",
-  "type": "module",
-  "bin": {
-    "projectx-cli": "dist/index.js"
-  },
-  "files": [
-    "dist",
-    "scripts"
-  ],
-  "engines": {
-    "node": ">=20.9"
-  },
-  "scripts": {
-    "preinstall": "node scripts/no-global.cjs",
-    "build": "tsc",
-    "dev": "tsx src/index.ts",
-    "start": "node dist/index.js",
-    "prepare": "npm run build"
-  },
-  "keywords": ["cli", "scaffold", "nextjs", "tailwindcss"],
-  "author": "DafkeDD",
-  "license": "MIT",
-  "dependencies": {
-    "@clack/prompts": "^0.11.0",
-    "picocolors": "^1.1.1"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
-  }
+    "name": "projectx-cli",
+    "version": "0.6.0",
+    "description": "Interactieve CLI die stap voor stap een project opzet in de huidige map.",
+    "type": "module",
+    "bin": {
+        "projectx-cli": "dist/index.js"
+    },
+    "files": [
+        "dist",
+        "scripts",
+        "templates"
+    ],
+    "engines": {
+        "node": ">=20.9"
+    },
+    "scripts": {
+        "preinstall": "node scripts/no-global.cjs",
+        "build": "tsc",
+        "dev": "tsx src/index.ts",
+        "start": "node dist/index.js",
+        "prepare": "npm run build",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "keywords": [
+        "cli",
+        "scaffold",
+        "nextjs",
+        "tailwindcss"
+    ],
+    "author": "DafkeDD",
+    "license": "MIT",
+    "dependencies": {
+        "@clack/prompts": "^0.11.0",
+        "picocolors": "^1.1.1"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.0",
+        "prettier": "^3.9.8",
+        "prettier-plugin-tailwindcss": "^0.8.1",
+        "tsx": "^4.19.0",
+        "typescript": "^5.7.0"
+    }
 }

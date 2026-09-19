@@ -1,7 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
-import type { Locale } from "./i18n.js";
-import { usesReactIcons, type IconLibrary } from "./icons.js";
+import fs from 'node:fs'
+import path from 'node:path'
+import type { Locale } from './i18n.js'
+import { usesReactIcons, type IconLibrary } from './icons.js'
 
 /**
  * VASTE REGEL: elke frontend heeft light/dark mode (zoals starter-cli).
@@ -16,21 +16,21 @@ import { usesReactIcons, type IconLibrary } from "./icons.js";
  */
 
 function write(file: string, content: string): void {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, content, "utf8");
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, content, 'utf8')
 }
 
 /** Vertalingen voor de theme-toggle; komen in messages/<taal>.json onder "Theme". */
 export const THEME_MESSAGES: Record<Locale, Record<string, string>> = {
-  en: { appearance: "Appearance", toggle: "Switch theme", light: "Light", dark: "Dark", system: "System" },
-  nl: { appearance: "Weergave", toggle: "Thema wisselen", light: "Licht", dark: "Donker", system: "Systeem" },
-  fr: { appearance: "Apparence", toggle: "Changer de thème", light: "Clair", dark: "Sombre", system: "Système" },
-  de: { appearance: "Darstellung", toggle: "Theme wechseln", light: "Hell", dark: "Dunkel", system: "System" },
-  es: { appearance: "Apariencia", toggle: "Cambiar tema", light: "Claro", dark: "Oscuro", system: "Sistema" },
-  it: { appearance: "Aspetto", toggle: "Cambia tema", light: "Chiaro", dark: "Scuro", system: "Sistema" },
-  pt: { appearance: "Aparência", toggle: "Alternar tema", light: "Claro", dark: "Escuro", system: "Sistema" },
-  pl: { appearance: "Wygląd", toggle: "Zmień motyw", light: "Jasny", dark: "Ciemny", system: "Systemowy" },
-};
+    en: { appearance: 'Appearance', toggle: 'Switch theme', light: 'Light', dark: 'Dark', system: 'System' },
+    nl: { appearance: 'Weergave', toggle: 'Thema wisselen', light: 'Licht', dark: 'Donker', system: 'Systeem' },
+    fr: { appearance: 'Apparence', toggle: 'Changer de thème', light: 'Clair', dark: 'Sombre', system: 'Système' },
+    de: { appearance: 'Darstellung', toggle: 'Theme wechseln', light: 'Hell', dark: 'Dunkel', system: 'System' },
+    es: { appearance: 'Apariencia', toggle: 'Cambiar tema', light: 'Claro', dark: 'Oscuro', system: 'Sistema' },
+    it: { appearance: 'Aspetto', toggle: 'Cambia tema', light: 'Chiaro', dark: 'Scuro', system: 'Sistema' },
+    pt: { appearance: 'Aparência', toggle: 'Alternar tema', light: 'Claro', dark: 'Escuro', system: 'Sistema' },
+    pl: { appearance: 'Wygląd', toggle: 'Zmień motyw', light: 'Jasny', dark: 'Ciemny', system: 'Systemowy' }
+}
 
 /** Dark-tokens, hergebruikt voor .dark én voor .theme-system + prefers-color-scheme. */
 const DARK_TOKENS = `    --background: 220 20% 8%;
@@ -56,7 +56,7 @@ const DARK_TOKENS = `    --background: 220 20% 8%;
 
     --border: 220 12% 20%;
     --input: 220 12% 20%;
-    --ring: 160 70% 45%;`;
+    --ring: 160 70% 45%;`
 
 const GLOBALS_CSS = `@import 'tailwindcss';
 
@@ -190,7 +190,7 @@ html.dark {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
 }
-`;
+`
 
 /** Gedeeld tussen server (layout) en client (provider): welke class hoort bij welk thema. */
 const THEME_LIB = `export type Theme = 'light' | 'dark' | 'system'
@@ -210,7 +210,7 @@ export function themeClass(theme: Theme): string | undefined {
     if (theme === 'system') return 'theme-system'
     return undefined
 }
-`;
+`
 
 /**
  * Server action voor de cookie. Via de server i.p.v. document.cookie: dat
@@ -228,7 +228,7 @@ export async function saveTheme(theme: string): Promise<void> {
     const cookieStore = await cookies()
     cookieStore.set(THEME_COOKIE, theme, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' })
 }
-`;
+`
 
 const THEME_PROVIDER = `'use client'
 
@@ -304,26 +304,26 @@ export function useTheme(): ThemeContextValue {
     if (!ctx) throw new Error('useTheme moet binnen ThemeProvider gebruikt worden')
     return ctx
 }
-`;
+`
 
 function themeToggle(lib: IconLibrary): string {
-  // React Icons als die er is, anders Font Awesome.
-  const iconImports = usesReactIcons(lib)
-    ? "import { MdComputer, MdDarkMode, MdLightMode } from 'react-icons/md'"
-    : "import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'\nimport { faDesktop, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'";
-  const icons = usesReactIcons(lib)
-    ? `const ICONS: Record<Theme, React.ReactNode> = {
+    // React Icons als die er is, anders Font Awesome.
+    const iconImports = usesReactIcons(lib)
+        ? "import { MdComputer, MdDarkMode, MdLightMode } from 'react-icons/md'"
+        : "import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'\nimport { faDesktop, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'"
+    const icons = usesReactIcons(lib)
+        ? `const ICONS: Record<Theme, React.ReactNode> = {
     light: <MdLightMode size={16} />,
     dark: <MdDarkMode size={16} />,
     system: <MdComputer size={16} />
 }`
-    : `const ICONS: Record<Theme, React.ReactNode> = {
+        : `const ICONS: Record<Theme, React.ReactNode> = {
     light: <FontAwesomeIcon icon={faSun} />,
     dark: <FontAwesomeIcon icon={faMoon} />,
     system: <FontAwesomeIcon icon={faDesktop} />
-}`;
+}`
 
-  return `'use client'
+    return `'use client'
 
 import { useTranslations } from 'next-intl'
 ${iconImports}
@@ -354,17 +354,17 @@ export default function ThemeToggle() {
         </button>
     )
 }
-`;
+`
 }
 
 /** Schrijft globals.css en de thema-bestanden. De layout zet i18n.ts. */
 export function setupTheme(target: string, icons: IconLibrary): void {
-  const src = path.join(target, "src");
-  const dir = path.join(src, "components", "theme");
+    const src = path.join(target, 'src')
+    const dir = path.join(src, 'components', 'theme')
 
-  write(path.join(src, "app", "globals.css"), GLOBALS_CSS);
-  write(path.join(dir, "theme.ts"), THEME_LIB);
-  write(path.join(dir, "actions.ts"), THEME_ACTIONS);
-  write(path.join(dir, "ThemeProvider.tsx"), THEME_PROVIDER);
-  write(path.join(dir, "ThemeToggle.tsx"), themeToggle(icons));
+    write(path.join(src, 'app', 'globals.css'), GLOBALS_CSS)
+    write(path.join(dir, 'theme.ts'), THEME_LIB)
+    write(path.join(dir, 'actions.ts'), THEME_ACTIONS)
+    write(path.join(dir, 'ThemeProvider.tsx'), THEME_PROVIDER)
+    write(path.join(dir, 'ThemeToggle.tsx'), themeToggle(icons))
 }
