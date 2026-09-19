@@ -3,6 +3,7 @@ import path from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { orCancel } from "../utils/prompt.js";
+import { THEME_MESSAGES } from "./theme.js";
 
 /** Alle talen waaruit je kan kiezen in de CLI. */
 export const AVAILABLE_LOCALES = ["en", "nl", "fr", "de", "es", "it", "pt", "pl"] as const;
@@ -276,13 +277,17 @@ export default withNextIntl(nextConfig)
 `,
   );
 
-  // Root-layout: html + body + fonts. De taal komt van next-intl.
+  // Root-layout: html + body + fonts + thema. De taal komt van next-intl, het
+  // thema uit de cookie (server-side, dus geen flits).
   write(
     path.join(appDir, "layout.tsx"),
     `import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { isTheme, themeClass, THEME_COOKIE, type Theme } from '@/components/theme/theme'
 import './globals.css'
 
 const geistSans = Geist({
@@ -297,7 +302,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
     title: 'App',
-    description: 'Next.js + Tailwind CSS + next-intl (${locales.join("/")})'
+    description: 'Next.js + Tailwind CSS + next-intl (${locales.join("/")}) + light/dark'
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -309,9 +314,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         // standaardtaal is prima
     }
 
+    // Themavoorkeur uit de cookie (nooit localStorage). Geen cookie = systeem.
+    const cookieTheme = (await cookies()).get(THEME_COOKIE)?.value
+    const theme: Theme = isTheme(cookieTheme) ? cookieTheme : 'system'
+
+    const className = [geistSans.variable, geistMono.variable, themeClass(theme), 'h-full antialiased']
+        .filter(Boolean)
+        .join(' ')
+
     return (
-        <html lang={locale} className={\`\${geistSans.variable} \${geistMono.variable} h-full antialiased\`}>
-            <body className='flex min-h-full flex-col'>{children}</body>
+        <html lang={locale} className={className} suppressHydrationWarning>
+            <body className='bg-background text-foreground flex min-h-full flex-col'>
+                <ThemeProvider initialTheme={theme}>{children}</ThemeProvider>
+            </body>
         </html>
     )
 }
@@ -353,26 +368,37 @@ export default async function LocaleLayout({
     path.join(localeDir, "page.tsx"),
     `import { getLocale, getTranslations } from 'next-intl/server'
 import LocaleSwitcher from '@/components/LocaleSwitcher'
+import ThemeToggle from '@/components/theme/ThemeToggle'
 
 export default async function Home() {
     const t = await getTranslations('HomePage')
+    const tTheme = await getTranslations('Theme')
     const locale = await getLocale()
 
     return (
         <main className='flex flex-1 flex-col items-center justify-center p-8'>
-            <div className='w-full max-w-xl rounded-xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-950'>
+            <div className='w-full max-w-xl border-border bg-card text-card-foreground rounded-xl border p-8 text-center'>
                 <h1 className='text-3xl font-semibold tracking-tight'>{t('title')}</h1>
-                <p className='mt-3 text-sm leading-relaxed text-zinc-500'>{t('description')}</p>
+                <p className='text-muted-foreground mt-3 text-sm leading-relaxed'>{t('description')}</p>
 
                 <div className='mt-8'>
-                    <p className='mb-3 text-xs font-medium tracking-wide text-zinc-500 uppercase'>
+                    <p className='text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase'>
                         {t('currentLanguage')}
                     </p>
                     <LocaleSwitcher />
                 </div>
 
-                <p className='mt-8 font-mono text-xs text-zinc-500'>{t('activeLocale', { locale })}</p>
-                <p className='mt-2 text-xs text-zinc-500'>{t('hint')}</p>
+                <div className='mt-8'>
+                    <p className='text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase'>
+                        {tTheme('appearance')}
+                    </p>
+                    <div className='flex justify-center'>
+                        <ThemeToggle />
+                    </div>
+                </div>
+
+                <p className='text-muted-foreground mt-8 font-mono text-xs'>{t('activeLocale', { locale })}</p>
+                <p className='text-muted-foreground mt-2 text-xs'>{t('hint')}</p>
             </div>
         </main>
     )
@@ -429,8 +455,8 @@ export default function LocaleSwitcher() {
                     className={
                         'rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ' +
                         (l.code === locale
-                            ? 'border-zinc-900 bg-zinc-900 font-medium text-white dark:border-white dark:bg-white dark:text-zinc-900'
-                            : 'border-zinc-200 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900')
+                            ? 'border-primary bg-primary text-primary-foreground font-medium'
+                            : 'border-border hover:bg-muted')
                     }
                 >
                     <span className='mr-1.5 text-xs opacity-70'>{l.short}</span>
@@ -448,7 +474,11 @@ export default function LocaleSwitcher() {
     const home = { ...MESSAGES[locale], hint: MESSAGES[locale].hint.replace("{files}", files) };
     write(
       path.join(target, "messages", `${locale}.json`),
-      JSON.stringify({ HomePage: home, LocaleSwitcher: { label: SWITCHER_LABEL[locale] } }, null, 4) + "\n",
+      JSON.stringify(
+        { HomePage: home, LocaleSwitcher: { label: SWITCHER_LABEL[locale] }, Theme: THEME_MESSAGES[locale] },
+        null,
+        4,
+      ) + "\n",
     );
   }
 }

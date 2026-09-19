@@ -6,6 +6,7 @@ import { runQuiet } from "../utils/exec.js";
 import { withProgress } from "../utils/progress.js";
 import { orCancel } from "../utils/prompt.js";
 import { setupNextIntl, type I18nConfig } from "./i18n.js";
+import { setupTheme } from "./theme.js";
 import type { PackageManager } from "../types.js";
 
 /** Submap binnen het project voor de frontend. */
@@ -23,7 +24,7 @@ export async function askFrontend(): Promise<Frontend> {
         {
           value: "nextjs",
           label: "Next.js + Tailwind CSS",
-          hint: "laatste versies · TypeScript · ESLint · src/ · Turbopack · next-intl",
+          hint: "laatste versies · TypeScript · ESLint · src/ · Turbopack · next-intl · light/dark",
         },
         { value: "none", label: "Geen frontend" },
       ],
@@ -33,7 +34,7 @@ export async function askFrontend(): Promise<Frontend> {
 
 export function frontendLabel(frontend: Frontend): string {
   return frontend === "nextjs"
-    ? `Next.js + Tailwind CSS + next-intl${pc.dim(`  -> ./${FRONTEND_DIR}`)}`
+    ? `Next.js + Tailwind CSS + next-intl + light/dark${pc.dim(`  -> ./${FRONTEND_DIR}`)}`
     : "geen";
 }
 
@@ -49,7 +50,8 @@ export function checkFrontend(frontend: Frontend, projectDir: string): string | 
 
 /**
  * Stap 1 — installatie: Next.js (create-next-app@latest) in ./frontend,
- * Tailwind expliciet op @latest, en altijd next-intl met de gekozen talen.
+ * Tailwind expliciet op @latest, en altijd next-intl (gekozen talen) en
+ * light/dark mode (theme.ts).
  */
 export async function scaffoldFrontend(
   frontend: Frontend,
@@ -91,9 +93,10 @@ export async function scaffoldFrontend(
       update("Tailwind CSS naar de laatste versie");
       await runQuiet(pm, ["install", "--save-dev", "tailwindcss@latest", "@tailwindcss/postcss@latest"], target);
 
-      update("next-intl opzetten");
+      update("next-intl + light/dark mode opzetten");
+      setupTheme(target);
       setupNextIntl(target, i18n);
-      await runQuiet(pm, ["install", "next-intl@latest"], target);
+      await runQuiet(pm, ["install", "next-intl@latest", "react-icons@latest"], target);
 
       update("Turbopack controleren");
       ensureTurbopack(target);

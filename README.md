@@ -30,7 +30,7 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 
 | # | Stap     | Keuzes                           | Resultaat     |
 |---|----------|----------------------------------|---------------|
-| 1 | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze), of geen | `./frontend`  |
+| 1 | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark, of geen | `./frontend`  |
 | 2 | Backend  | _volgt_                          |               |
 
 ### 1. Frontend
@@ -55,6 +55,25 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
   `src/i18n/` (routing, request, navigation, actions), `src/app/[locale]/`
   en een `LocaleSwitcher`-component
 
+- **Light/dark mode, altijd** — geen vraag:
+  - class-based (Tailwind 4 `@custom-variant dark`), voorkeur in de cookie
+    `theme` — nooit localStorage
+  - de server zet de class al op `<html>`, dus geen flits bij het laden
+
+    | cookie              | `<html>`              | resultaat                      |
+    |---------------------|-----------------------|--------------------------------|
+    | `light`             | geen class            | altijd licht                   |
+    | `dark`              | `class="dark"`        | altijd donker                  |
+    | `system` of geen    | `class="theme-system"`| volgt `prefers-color-scheme`   |
+
+  - design tokens in `globals.css` (licht + donker) → utility classes als
+    `bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`,
+    `border-border`, `bg-primary`. Gebruik die i.p.v. `bg-white`/`text-black`,
+    anders breekt dark mode
+  - `useTheme()` geeft `theme`, `resolvedTheme`, `setTheme()` en `cycleTheme()`
+  - `ThemeToggle` wisselt licht → donker → systeem, met iconen uit
+    `react-icons` en vertaalde labels
+
 ```
 frontend/
 ├─ messages/            één .json per gekozen taal
@@ -62,8 +81,10 @@ frontend/
    ├─ proxy.ts          next-intl middleware
    ├─ i18n/             routing · request · navigation · actions
    ├─ components/       LocaleSwitcher.tsx
+   │  └─ theme/         theme.ts · actions.ts · ThemeProvider · ThemeToggle
    └─ app/
-      ├─ layout.tsx     <html lang> + fonts
+      ├─ globals.css    tokens licht/donker + Tailwind-mapping
+      ├─ layout.tsx     <html lang class> + fonts + ThemeProvider
       └─ [locale]/      layout.tsx · page.tsx
 ```
 
@@ -72,7 +93,7 @@ Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit
-op. Je ziet de versie bovenaan (`projectx-cli v0.2.0`). Klopt die niet, maak
+op. Je ziet de versie bovenaan (`projectx-cli v0.3.0`). Klopt die niet, maak
 dan de npx-cache leeg:
 
 ```powershell
@@ -94,7 +115,8 @@ src/
 ├─ index.ts            vragen → controles → overzicht → installeren
 ├─ steps/
 │  ├─ frontend.ts      askFrontend / checkFrontend / scaffoldFrontend
-│  └─ i18n.ts          next-intl: talen, bestanden, vertalingen
+│  ├─ i18n.ts          next-intl: talen, bestanden, vertalingen
+│  └─ theme.ts         light/dark mode + design tokens
 └─ utils/              exec, progress-bar, prompt-helpers
 ```
 
