@@ -1,0 +1,72 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { runQuiet } from '../utils/exec.js'
+import type { PackageManager } from '../types.js'
+
+function writeJson(file: string, data: unknown): void {
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, JSON.stringify(data, null, 4) + '\n', 'utf8')
+}
+
+/**
+ * ESLint + Prettier laten samenwerken: eslint-config-prettier zet alle
+ * ESLint-regels uit die over opmaak gaan, zodat alleen Prettier daarover
+ * beslist. Komt als laatste in de flat config.
+ */
+export async function setupEslintPrettier(pm: PackageManager, target: string): Promise<void> {
+    fs.writeFileSync(
+        path.join(target, 'eslint.config.mjs'),
+        `import { defineConfig, globalIgnores } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+import nextTs from 'eslint-config-next/typescript'
+import prettier from 'eslint-config-prettier/flat'
+
+const eslintConfig = defineConfig([
+    ...nextVitals,
+    ...nextTs,
+    // Als laatste: zet opmaakregels uit, daar beslist Prettier over.
+    prettier,
+    globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts'])
+])
+
+export default eslintConfig
+`,
+        'utf8'
+    )
+    await runQuiet(pm, ['install', '--save-dev', 'eslint-config-prettier@latest'], target)
+}
+
+/**
+ * VS Code-instellingen in de PROJECTMAP (niet in ./frontend), want daar open
+ * je het project — straks ook met een backend ernaast. Bestaat .vscode al,
+ * dan laten we het met rust.
+ *
+ * @param appDirs submappen met een eigen package.json (voor ESLint).
+ */
+export function setupVsCode(projectDir: string, appDirs: string[]): boolean {
+    const dir = path.join(projectDir, '.vscode')
+    const settingsFile = path.join(dir, 'settings.json')
+    const extensionsFile = path.join(dir, 'extensions.json')
+    if (fs.existsSync(settingsFile) || fs.existsSync(extensionsFile)) return false
+
+    writeJson(settingsFile, {
+        // Prettier (met de .prettierrc van elke app) bij elke keer opslaan.
+        'editor.defaultFormatter': 'esbenp.prettier-vscode',
+        'editor.formatOnSave': true,
+        'prettier.requireConfig': true,
+        // ESLint-fixes bij opslaan.
+        'editor.codeActionsOnSave': { 'source.fixAll.eslint': 'explicit' },
+        'eslint.workingDirectories': appDirs.map(d => ({ directory: d, changeProcessCWD: true })),
+        // Tailwind v4: @custom-variant, @theme, ... herkennen + suggesties in className.
+        'files.associations': { '*.css': 'tailwindcss' },
+        'tailwindCSS.classFunctions': ['clsx', 'cn'],
+        // TypeScript van het project gebruiken, niet die van VS Code.
+        'typescript.tsdk': `${appDirs[0] ?? '.'}/node_modules/typescript/lib`,
+        'typescript.enablePromptUseWorkspaceTsdk': true
+    })
+
+    writeJson(extensionsFile, {
+        recommendations: ['esbenp.prettier-vscode', 'dbaeumer.vscode-eslint', 'bradlc.vscode-tailwindcss']
+    })
+    return true
+}

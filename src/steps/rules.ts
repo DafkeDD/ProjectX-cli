@@ -57,6 +57,7 @@ Talen: ${locales.map(code).join(', ')}. Standaardtaal: ${code(defaultLocale)}. D
 - Elke nieuwe key in **alle** bestanden onder \`messages/\` (${locales.map(l => code(`${l}.json`)).join(', ')}).
 - Nieuwe pagina's onder \`src/app/[locale]/\`, nooit direct onder \`src/app/\`.
 - Interne navigatie via \`@/i18n/navigation\`, niet via \`next/link\` of \`next/navigation\`.
+- Talenlijst **alleen** in \`src/i18n/locales.ts\`. Paginatitels via \`generateMetadata\` + \`Metadata\` in \`messages/\`.
 
 ## 2. UI-componenten — altijd zelf bouwen
 
@@ -109,9 +110,12 @@ bijkomt — voor mensen én voor AI-assistenten (die lezen het blok in
 3. **Nieuwe pagina's onder \`src/app/[locale]/\`**, anders mist de taalcontext.
 4. **Navigatie via \`@/i18n/navigation\`** (\`Link\`, \`useRouter\`, \`redirect\`,
    \`usePathname\`) — nooit \`next/link\` of \`next/navigation\` voor interne links.
-5. **Een taal toevoegen** doe je in \`src/i18n/routing.ts\`, in de lijst in
-   \`next.config.ts\`, in \`src/components/LocaleSwitcher.tsx\` én met een nieuw
-   bestand in \`messages/\`.
+5. **De talenlijst staat op één plek: \`src/i18n/locales.ts\`.** Een taal
+   toevoegen = daar \`locales\` en \`localeLabels\` aanvullen, en een nieuw
+   bestand in \`messages/\`. Routing, redirects en taalkiezer volgen vanzelf.
+6. **Paginatitels komen ook uit \`messages/\`** (namespace \`Metadata\`), via
+   \`generateMetadata\` + \`getTranslations\`. Nooit \`title: 'Iets'\` hard
+   coderen.
 
 \`\`\`tsx
 // Server component
@@ -209,11 +213,13 @@ export function Button({
 |---|---|
 | \`npm run format\` | alles in de huisstijl zetten |
 | \`npm run format:check\` | controleren zonder te wijzigen |
-| \`npm run lint\` | ESLint (inclusief de React-regels van Next.js) |
+| \`npm run lint\` | ESLint (React-regels van Next.js; stijlregels uit via \`eslint-config-prettier\`) |
 
 - 4 spaties, enkele quotes (ook in JSX), geen puntkomma's, geen trailing
   commas, max. 120 tekens per regel. Tailwind-classes worden gesorteerd door
-  \`prettier-plugin-tailwindcss\`.
+  \`prettier-plugin-tailwindcss\`. De config staat in \`.prettierrc\` — niet
+  aanpassen.
+- VS Code: formatteert bij opslaan (zie \`.vscode/\` in de projectmap).
 - Cookies zet je via een **server action** (zoals \`src/i18n/actions.ts\` en
   \`src/components/theme/actions.ts\`), niet met \`document.cookie\` — dat keurt
   de lintregel \`react-hooks/immutability\` af.

@@ -97,6 +97,18 @@ const MESSAGES: Record<Locale, Record<string, string>> = {
     }
 }
 
+/** Beschrijving voor <meta name="description">; {name} = projectnaam. */
+const META_DESCRIPTION: Record<Locale, string> = {
+    en: '{name} — built with Next.js, Tailwind CSS and next-intl.',
+    nl: '{name} — gebouwd met Next.js, Tailwind CSS en next-intl.',
+    fr: '{name} — construit avec Next.js, Tailwind CSS et next-intl.',
+    de: '{name} — erstellt mit Next.js, Tailwind CSS und next-intl.',
+    es: '{name} — creado con Next.js, Tailwind CSS y next-intl.',
+    it: '{name} — realizzato con Next.js, Tailwind CSS e next-intl.',
+    pt: '{name} — criado com Next.js, Tailwind CSS e next-intl.',
+    pl: '{name} — zbudowane z Next.js, Tailwind CSS i next-intl.'
+}
+
 const SWITCHER_LABEL: Record<Locale, string> = {
     en: 'Language',
     nl: 'Taal',
@@ -159,10 +171,11 @@ function removeIfExists(file: string): void {
 /**
  * Zet next-intl op in een verse create-next-app: App Router met een
  * [locale]-segment, localePrefix 'never' (taal via cookie, niet in de URL).
- * Talen en standaardtaal komen uit askI18n(). De package zelf
+ * Talen en standaardtaal komen uit askI18n(); de talenlijst staat op één
+ * plek: src/i18n/locales.ts. De paginatitel is de projectnaam (messages). De package zelf
  * (next-intl@latest) installeert frontend.ts.
  */
-export function setupNextIntl(target: string, { locales, defaultLocale }: I18nConfig): void {
+export function setupNextIntl(target: string, { locales, defaultLocale }: I18nConfig, projectName: string): void {
     const src = path.join(target, 'src')
     const appDir = path.join(src, 'app')
     const localeDir = path.join(appDir, '[locale]')
@@ -177,13 +190,40 @@ export function setupNextIntl(target: string, { locales, defaultLocale }: I18nCo
     // Next.js maakt ze opnieuw aan bij de eerste dev/build.
     fs.rmSync(path.join(target, '.next'), { recursive: true, force: true })
 
+    const labels = locales
+        .map(l => `    ${l}: { label: '${LOCALE_LABELS[l].label}', short: '${LOCALE_LABELS[l].short}' }`)
+        .join(',\n')
+
+    write(
+        path.join(src, 'i18n', 'locales.ts'),
+        `/**
+ * DE ENIGE PLEK met de talenlijst. routing.ts, next.config.ts en de
+ * LocaleSwitcher lezen allemaal hieruit.
+ *
+ * Een taal toevoegen: zet hem hieronder in \`locales\` en \`localeLabels\`, en
+ * maak messages/<taal>.json aan (kopie van een bestaande taal, vertaald).
+ */
+export const locales = [${localeList}] as const
+
+export type Locale = (typeof locales)[number]
+
+export const defaultLocale: Locale = '${defaultLocale}'
+
+/** Naam van elke taal in die taal zelf, voor de taalkiezer. */
+export const localeLabels: Record<Locale, { label: string; short: string }> = {
+${labels}
+}
+`
+    )
+
     write(
         path.join(src, 'i18n', 'routing.ts'),
         `import { defineRouting } from 'next-intl/routing'
+import { defaultLocale, locales } from './locales'
 
 export const routing = defineRouting({
-    locales: [${localeList}],
-    defaultLocale: '${defaultLocale}',
+    locales,
+    defaultLocale,
     // Geen taal in de URL (/about i.p.v. /en/about); de locale gaat via cookie.
     localePrefix: 'never'
 })
@@ -261,9 +301,7 @@ export const config = {
         path.join(target, 'next.config.ts'),
         `import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
-
-/** Zelfde lijst als in src/i18n/routing.ts. */
-const LOCALES = [${localeList}]
+import { locales } from './src/i18n/locales'
 
 const nextConfig: NextConfig = {
     /**
@@ -273,8 +311,8 @@ const nextConfig: NextConfig = {
      */
     async redirects() {
         return [
-            ...LOCALES.map(locale => ({ source: \`/\${locale}\`, destination: '/', permanent: false })),
-            ...LOCALES.map(locale => ({ source: \`/\${locale}/:path*\`, destination: '/:path*', permanent: false }))
+            ...locales.map(locale => ({ source: \`/\${locale}\`, destination: '/', permanent: false })),
+            ...locales.map(locale => ({ source: \`/\${locale}/:path*\`, destination: '/:path*', permanent: false }))
         ]
     }
 }
@@ -289,8 +327,7 @@ export default withNextIntl(nextConfig)
     // thema uit de cookie (server-side, dus geen flits).
     write(
         path.join(appDir, 'layout.tsx'),
-        `import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+        `import { Geist, Geist_Mono } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
@@ -307,11 +344,6 @@ const geistMono = Geist_Mono({
     variable: '--font-geist-mono',
     subsets: ['latin']
 })
-
-export const metadata: Metadata = {
-    title: 'App',
-    description: 'Next.js + Tailwind CSS + next-intl (${locales.join('/')}) + light/dark'
-}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
     // Routes buiten [locale] hebben geen taalcontext: dan de standaardtaal.
@@ -343,13 +375,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
     write(
         path.join(localeDir, 'layout.tsx'),
-        `import { hasLocale, NextIntlClientProvider } from 'next-intl'
-import { setRequestLocale } from 'next-intl/server'
+        `import type { Metadata } from 'next'
+import { hasLocale, NextIntlClientProvider } from 'next-intl'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
 
 export function generateStaticParams() {
     return routing.locales.map(locale => ({ locale }))
+}
+
+/** Titel en beschrijving komen uit messages/<taal>.json (Metadata). */
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale } = await params
+    const t = await getTranslations({ locale, namespace: 'Metadata' })
+
+    return {
+        // Een pagina met eigen titel "Over" wordt "Over · <projectnaam>".
+        title: { default: t('title'), template: \`%s · \${t('title')}\` },
+        description: t('description')
+    }
 }
 
 export default async function LocaleLayout({
@@ -377,6 +422,7 @@ export default async function LocaleLayout({
         `import { getLocale, getTranslations } from 'next-intl/server'
 import LocaleSwitcher from '@/components/LocaleSwitcher'
 import ThemeToggle from '@/components/theme/ThemeToggle'
+import { routing } from '@/i18n/routing'
 
 export default async function Home() {
     const t = await getTranslations('HomePage')
@@ -389,12 +435,15 @@ export default async function Home() {
                 <h1 className='text-3xl font-semibold tracking-tight'>{t('title')}</h1>
                 <p className='text-muted-foreground mt-3 text-sm leading-relaxed'>{t('description')}</p>
 
-                <div className='mt-8'>
-                    <p className='text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase'>
-                        {t('currentLanguage')}
-                    </p>
-                    <LocaleSwitcher />
-                </div>
+                {/* Taalkiezer enkel als er iets te kiezen valt. */}
+                {routing.locales.length > 1 && (
+                    <div className='mt-8'>
+                        <p className='text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase'>
+                            {t('currentLanguage')}
+                        </p>
+                        <LocaleSwitcher />
+                    </div>
+                )}
 
                 <div className='mt-8'>
                     <p className='text-muted-foreground mb-3 text-xs font-medium tracking-wide uppercase'>
@@ -414,13 +463,6 @@ export default async function Home() {
 `
     )
 
-    const localeButtons = locales
-        .map(l => {
-            const meta = LOCALE_LABELS[l]
-            return `    { code: '${l}', label: '${meta.label}', short: '${meta.short}' }`
-        })
-        .join(',\n')
-
     write(
         path.join(src, 'components', 'LocaleSwitcher.tsx'),
         `'use client'
@@ -429,16 +471,16 @@ import { useTransition } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { setLocale } from '@/i18n/actions'
-
-const LOCALES = [
-${localeButtons}
-] as const
+import { localeLabels, locales } from '@/i18n/locales'
 
 export default function LocaleSwitcher() {
     const t = useTranslations('LocaleSwitcher')
     const locale = useLocale()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
+
+    // Eén taal = niets te kiezen.
+    if (locales.length < 2) return null
 
     /**
      * De taal staat nooit in de URL (localePrefix: 'never'). We zetten dus de
@@ -455,22 +497,22 @@ export default function LocaleSwitcher() {
 
     return (
         <div className='flex flex-wrap items-center justify-center gap-2' aria-label={t('label')}>
-            {LOCALES.map(l => (
+            {locales.map(code => (
                 <button
-                    key={l.code}
+                    key={code}
                     type='button'
                     disabled={isPending}
-                    onClick={() => switchLocale(l.code)}
-                    aria-current={l.code === locale}
+                    onClick={() => switchLocale(code)}
+                    aria-current={code === locale}
                     className={
                         'rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ' +
-                        (l.code === locale
+                        (code === locale
                             ? 'border-primary bg-primary text-primary-foreground font-medium'
                             : 'border-border hover:bg-muted')
                     }
                 >
-                    <span className='mr-1.5 text-xs opacity-70'>{l.short}</span>
-                    {l.label}
+                    <span className='mr-1.5 text-xs opacity-70'>{localeLabels[code].short}</span>
+                    {localeLabels[code].label}
                 </button>
             ))}
         </div>
@@ -485,7 +527,15 @@ export default function LocaleSwitcher() {
         write(
             path.join(target, 'messages', `${locale}.json`),
             JSON.stringify(
-                { HomePage: home, LocaleSwitcher: { label: SWITCHER_LABEL[locale] }, Theme: THEME_MESSAGES[locale] },
+                {
+                    Metadata: {
+                        title: projectName,
+                        description: META_DESCRIPTION[locale].replace('{name}', projectName)
+                    },
+                    HomePage: home,
+                    LocaleSwitcher: { label: SWITCHER_LABEL[locale] },
+                    Theme: THEME_MESSAGES[locale]
+                },
                 null,
                 4
             ) + '\n'

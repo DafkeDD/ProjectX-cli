@@ -9,6 +9,7 @@ import { setupNextIntl, type I18nConfig } from './i18n.js'
 import { setupTheme } from './theme.js'
 import { iconPackages, setupIcons, type IconLibrary } from './icons.js'
 import { setupRules } from './rules.js'
+import { setupEslintPrettier, setupVsCode } from './editor.js'
 import { setupPrettier, formatAll } from '../utils/prettier.js'
 import type { PackageManager } from '../types.js'
 
@@ -27,7 +28,7 @@ export async function askFrontend(): Promise<Frontend> {
                 {
                     value: 'nextjs',
                     label: 'Next.js + Tailwind CSS',
-                    hint: 'laatste versies · TypeScript · ESLint · Prettier · src/ · Turbopack · next-intl · light/dark · iconen · AI-regels'
+                    hint: 'laatste versies · next-intl · light/dark'
                 },
                 { value: 'none', label: 'Geen frontend' }
             ]
@@ -69,6 +70,7 @@ export async function scaffoldFrontend(
     }
 
     const target = path.join(projectDir, FRONTEND_DIR)
+    let vscode = false
 
     await withProgress(
         'Next.js installeren (laatste versie)',
@@ -99,7 +101,7 @@ export async function scaffoldFrontend(
 
             update('next-intl + light/dark mode + iconen opzetten')
             setupTheme(target, icons)
-            setupNextIntl(target, i18n)
+            setupNextIntl(target, i18n, path.basename(projectDir))
             setupIcons(target, icons)
             await runQuiet(pm, ['install', 'next-intl@latest', ...iconPackages(icons)], target)
 
@@ -109,8 +111,10 @@ export async function scaffoldFrontend(
             update('Turbopack controleren')
             ensureTurbopack(target)
 
-            update('Prettier installeren en alles formatteren')
+            update('Prettier + ESLint + VS Code instellen en alles formatteren')
             await setupPrettier(pm, target)
+            await setupEslintPrettier(pm, target)
+            vscode = setupVsCode(projectDir, [FRONTEND_DIR])
             await formatAll(pm, target)
         },
         90000
@@ -123,6 +127,11 @@ export async function scaffoldFrontend(
                 `  (next ${versions.next ?? '?'}, tailwindcss ${versions.tailwindcss ?? '?'}, next-intl ${versions['next-intl'] ?? '?'}` +
                     ` · talen ${i18n.locales.join(', ')}, standaard ${i18n.defaultLocale})`
             )
+    )
+    p.log.info(
+        vscode
+            ? `VS Code-instellingen in ./.vscode ${pc.dim('(open de projectmap in VS Code en installeer de aanbevolen extensies)')}`
+            : `./.vscode bestond al ${pc.dim('— niet overschreven')}`
     )
 }
 
