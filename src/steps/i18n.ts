@@ -97,16 +97,16 @@ const MESSAGES: Record<Locale, Record<string, string>> = {
     }
 }
 
-/** Beschrijving voor <meta name="description">; {name} = projectnaam. */
+/** Beschrijving voor <meta name="description">; {appName} vult next-intl in met env.appName. */
 const META_DESCRIPTION: Record<Locale, string> = {
-    en: '{name} — built with Next.js, Tailwind CSS and next-intl.',
-    nl: '{name} — gebouwd met Next.js, Tailwind CSS en next-intl.',
-    fr: '{name} — construit avec Next.js, Tailwind CSS et next-intl.',
-    de: '{name} — erstellt mit Next.js, Tailwind CSS und next-intl.',
-    es: '{name} — creado con Next.js, Tailwind CSS y next-intl.',
-    it: '{name} — realizzato con Next.js, Tailwind CSS e next-intl.',
-    pt: '{name} — criado com Next.js, Tailwind CSS e next-intl.',
-    pl: '{name} — zbudowane z Next.js, Tailwind CSS i next-intl.'
+    en: '{appName} — built with Next.js, Tailwind CSS and next-intl.',
+    nl: '{appName} — gebouwd met Next.js, Tailwind CSS en next-intl.',
+    fr: '{appName} — construit avec Next.js, Tailwind CSS et next-intl.',
+    de: '{appName} — erstellt mit Next.js, Tailwind CSS und next-intl.',
+    es: '{appName} — creado con Next.js, Tailwind CSS y next-intl.',
+    it: '{appName} — realizzato con Next.js, Tailwind CSS e next-intl.',
+    pt: '{appName} — criado com Next.js, Tailwind CSS e next-intl.',
+    pl: '{appName} — zbudowane z Next.js, Tailwind CSS i next-intl.'
 }
 
 const SWITCHER_LABEL: Record<Locale, string> = {
@@ -172,10 +172,10 @@ function removeIfExists(file: string): void {
  * Zet next-intl op in een verse create-next-app: App Router met een
  * [locale]-segment, localePrefix 'never' (taal via cookie, niet in de URL).
  * Talen en standaardtaal komen uit askI18n(); de talenlijst staat op één
- * plek: src/i18n/locales.ts. De paginatitel is de projectnaam (messages). De package zelf
+ * plek: src/i18n/locales.ts. De paginatitel is env.appName (.env). De package zelf
  * (next-intl@latest) installeert frontend.ts.
  */
-export function setupNextIntl(target: string, { locales, defaultLocale }: I18nConfig, projectName: string): void {
+export function setupNextIntl(target: string, { locales, defaultLocale }: I18nConfig): void {
     const src = path.join(target, 'src')
     const appDir = path.join(src, 'app')
     const localeDir = path.join(appDir, '[locale]')
@@ -380,20 +380,21 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { routing } from '@/i18n/routing'
+import { env } from '@/lib/env'
 
 export function generateStaticParams() {
     return routing.locales.map(locale => ({ locale }))
 }
 
-/** Titel en beschrijving komen uit messages/<taal>.json (Metadata). */
+/** Titel = de app-naam uit .env; beschrijving uit messages/<taal>.json (Metadata). */
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params
     const t = await getTranslations({ locale, namespace: 'Metadata' })
 
     return {
-        // Een pagina met eigen titel "Over" wordt "Over · <projectnaam>".
-        title: { default: t('title'), template: \`%s · \${t('title')}\` },
-        description: t('description')
+        // Een pagina met eigen titel "Over" wordt "Over · <app-naam>".
+        title: { default: env.appName, template: \`%s · \${env.appName}\` },
+        description: t('description', { appName: env.appName })
     }
 }
 
@@ -423,6 +424,7 @@ export default async function LocaleLayout({
 import LocaleSwitcher from '@/components/LocaleSwitcher'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { routing } from '@/i18n/routing'
+import { env } from '@/lib/env'
 
 export default async function Home() {
     const t = await getTranslations('HomePage')
@@ -432,6 +434,7 @@ export default async function Home() {
     return (
         <main className='flex flex-1 flex-col items-center justify-center p-8'>
             <div className='w-full max-w-xl border-border bg-card text-card-foreground rounded-xl border p-8 text-center'>
+                <p className='text-primary mb-2 text-sm font-medium'>{env.appName}</p>
                 <h1 className='text-3xl font-semibold tracking-tight'>{t('title')}</h1>
                 <p className='text-muted-foreground mt-3 text-sm leading-relaxed'>{t('description')}</p>
 
@@ -528,10 +531,7 @@ export default function LocaleSwitcher() {
             path.join(target, 'messages', `${locale}.json`),
             JSON.stringify(
                 {
-                    Metadata: {
-                        title: projectName,
-                        description: META_DESCRIPTION[locale].replace('{name}', projectName)
-                    },
+                    Metadata: { description: META_DESCRIPTION[locale] },
                     HomePage: home,
                     LocaleSwitcher: { label: SWITCHER_LABEL[locale] },
                     Theme: THEME_MESSAGES[locale]

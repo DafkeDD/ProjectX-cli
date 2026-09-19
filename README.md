@@ -90,8 +90,18 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 
 - **De talenlijst staat op één plek:** `src/i18n/locales.ts` (talen, standaardtaal, namen voor de taalkiezer). Routing,
   redirects in `next.config.ts` en de `LocaleSwitcher` lezen daaruit. Bij één taal wordt de taalkiezer verborgen.
-- **Paginatitel en beschrijving uit `messages/`** (namespace `Metadata`) via `generateMetadata`. Standaard is de titel
-  de naam van je projectmap; subpagina's worden `Pagina · projectnaam`.
+- **`.env` met app-naam en poort** — de CLI vraagt beide (naam: standaard de mapnaam; poort: de eerste vrije vanaf
+  3000):
+
+    | Variabele              | Gebruikt voor                                                 | In de code    |
+    | ---------------------- | ------------------------------------------------------------- | ------------- |
+    | `NEXT_PUBLIC_APP_NAME` | paginatitel, beschrijving (`{appName}` in `messages/`), de UI | `env.appName` |
+    | `PORT`                 | `npm run dev` en `npm run start`                              | `env.port`    |
+
+    Alles loopt via `src/lib/env.ts` (met terugvalwaarden). Next.js leest `PORT` zelf niet uit `.env`, daarom starten
+    `dev` en `start` via `scripts/next.mjs`, dat `.env` laadt met Next's eigen loader. `.env` gaat niet mee in git,
+    `.env.example` wel. Subpagina's krijgen als titel `Pagina · app-naam`.
+
 - **ESLint + Prettier botsen nooit** — `eslint-config-prettier` staat als laatste in `eslint.config.mjs`.
 - **VS Code** — in de projectmap (niet in `./frontend`): `.vscode/settings.json` formatteert bij opslaan met Prettier,
   voert ESLint-fixes uit en herkent Tailwind v4; `.vscode/extensions.json` raadt Prettier, ESLint en Tailwind CSS
@@ -129,7 +139,7 @@ Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
-(`projectx-cli v0.7.0`). Klopt die niet, maak dan de npx-cache leeg:
+(`projectx-cli v0.8.0`). Klopt die niet, maak dan de npx-cache leeg:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"
@@ -155,7 +165,8 @@ src/
 │  ├─ theme.ts         light/dark mode + design tokens
 │  ├─ icons.ts         React Icons / Font Awesome / beide
 │  ├─ rules.ts         PROJECT-RULES.md + AGENTS.md
-│  └─ editor.ts        eslint-config-prettier + .vscode
+│  ├─ editor.ts        eslint-config-prettier + .vscode
+│  └─ env.ts           app-naam + poort -> .env, src/lib/env.ts, scripts/next.mjs
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```
 

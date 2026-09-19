@@ -10,6 +10,7 @@ import { setupTheme } from './theme.js'
 import { iconPackages, setupIcons, type IconLibrary } from './icons.js'
 import { setupRules } from './rules.js'
 import { setupEslintPrettier, setupVsCode } from './editor.js'
+import { setupEnv, type AppConfig } from './env.js'
 import { setupPrettier, formatAll } from '../utils/prettier.js'
 import type { PackageManager } from '../types.js'
 
@@ -62,7 +63,9 @@ export async function scaffoldFrontend(
     projectDir: string,
     pm: PackageManager,
     i18n: I18nConfig,
-    icons: IconLibrary
+    icons: IconLibrary,
+    app: AppConfig,
+    port: number
 ): Promise<void> {
     if (frontend === 'none') {
         p.log.info('Geen frontend gekozen — overgeslagen.')
@@ -101,9 +104,12 @@ export async function scaffoldFrontend(
 
             update('next-intl + light/dark mode + iconen opzetten')
             setupTheme(target, icons)
-            setupNextIntl(target, i18n, path.basename(projectDir))
+            setupNextIntl(target, i18n)
             setupIcons(target, icons)
             await runQuiet(pm, ['install', 'next-intl@latest', ...iconPackages(icons)], target)
+
+            update('.env met app-naam en poort')
+            setupEnv(target, app, port)
 
             update('Regels voor AI-assistenten schrijven')
             setupRules(target, i18n, icons)

@@ -6,6 +6,7 @@ import pc from 'picocolors'
 import { askFrontend, checkFrontend, frontendLabel, scaffoldFrontend, FRONTEND_DIR } from './steps/frontend.js'
 import { askI18n, i18nLabel, type I18nConfig } from './steps/i18n.js'
 import { askIcons, iconsLabel, type IconLibrary } from './steps/icons.js'
+import { askAppName, askPort } from './steps/env.js'
 import { orCancel } from './utils/prompt.js'
 import { isGlobalInstall } from './utils/guard.js'
 import type { PackageManager } from './types.js'
@@ -32,10 +33,12 @@ async function main(): Promise<void> {
     const projectDir = process.cwd()
 
     // ---- Vragen (stap voor stap) -------------------------------------------
+    const app = await askAppName(projectDir)
     const frontend = await askFrontend()
     // Talen enkel als er een frontend komt; next-intl zelf is geen vraag.
     const i18n: I18nConfig | null = frontend === 'nextjs' ? await askI18n() : null
     const icons: IconLibrary | null = frontend === 'nextjs' ? await askIcons() : null
+    const port: number | null = frontend === 'nextjs' ? await askPort() : null
     // Volgende stappen (backend, ...) komen hier.
 
     // ---- Controles ---------------------------------------------------------
@@ -48,10 +51,12 @@ async function main(): Promise<void> {
     // ---- Overzicht ---------------------------------------------------------
     p.note(
         [
+            `${pc.dim('App     ')}  ${pc.cyan(app.appName)}`,
             `${pc.dim('Locatie ')}  ${pc.cyan(projectDir)}`,
             `${pc.dim('Frontend')}  ${pc.cyan(frontendLabel(frontend))}`,
             ...(i18n ? [`${pc.dim('Talen   ')}  ${pc.cyan(i18nLabel(i18n))}`] : []),
             ...(icons ? [`${pc.dim('Iconen  ')}  ${pc.cyan(iconsLabel(icons))}`] : []),
+            ...(port ? [`${pc.dim('Poort   ')}  ${pc.cyan(String(port))}${pc.dim('  in frontend/.env')}`] : []),
             `${pc.dim('Manager ')}  ${pc.cyan(PACKAGE_MANAGER)}`
         ].join('\n'),
         'Overzicht'
@@ -64,12 +69,12 @@ async function main(): Promise<void> {
     }
 
     // ---- Installeren -------------------------------------------------------
-    if (i18n && icons) await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, i18n, icons)
+    if (i18n && icons && port) await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, i18n, icons, app, port)
 
     // ---- Volgende stappen --------------------------------------------------
     const steps: string[] = []
     if (frontend === 'nextjs') {
-        steps.push(`cd ${FRONTEND_DIR} && ${PACKAGE_MANAGER} run dev   ${pc.dim('http://localhost:3000')}`)
+        steps.push(`cd ${FRONTEND_DIR} && ${PACKAGE_MANAGER} run dev   ${pc.dim(`http://localhost:${port}`)}`)
     }
     if (steps.length > 0) p.note(steps.join('\n'), 'Volgende stappen')
 

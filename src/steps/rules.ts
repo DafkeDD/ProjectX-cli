@@ -59,6 +59,15 @@ Talen: ${locales.map(code).join(', ')}. Standaardtaal: ${code(defaultLocale)}. D
 - Interne navigatie via \`@/i18n/navigation\`, niet via \`next/link\` of \`next/navigation\`.
 - Talenlijst **alleen** in \`src/i18n/locales.ts\`. Paginatitels via \`generateMetadata\` + \`Metadata\` in \`messages/\`.
 
+## Instellingen — .env
+
+- App-naam (\`NEXT_PUBLIC_APP_NAME\`) en poort (\`PORT\`) staan in \`.env\`. In de code **altijd** via
+  \`import { env } from '@/lib/env'\` (\`env.appName\`, \`env.port\`), nooit \`process.env\` rechtstreeks en nooit de naam
+  hard coderen.
+- Nieuwe instelling = in \`.env\`, in \`.env.example\` én in \`src/lib/env.ts\`. Geheimen nooit in \`.env.example\`.
+- \`npm run dev\` / \`npm run start\` lopen via \`scripts/next.mjs\`, dat \`PORT\` uit \`.env\` leest. Niet vervangen door
+  \`next dev\`.
+
 ## 2. UI-componenten — altijd zelf bouwen
 
 Niets uit een component library: geen shadcn/ui, Radix, MUI, Chakra, Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI.
@@ -115,7 +124,26 @@ bijkomt — voor mensen én voor AI-assistenten (die lezen het blok in
    bestand in \`messages/\`. Routing, redirects en taalkiezer volgen vanzelf.
 6. **Paginatitels komen ook uit \`messages/\`** (namespace \`Metadata\`), via
    \`generateMetadata\` + \`getTranslations\`. Nooit \`title: 'Iets'\` hard
-   coderen.
+   coderen. De app-naam zelf komt uit \`.env\` (\`env.appName\`).
+
+---
+
+## Instellingen — .env
+
+| Variabele | Waarvoor | In de code |
+|---|---|---|
+| \`NEXT_PUBLIC_APP_NAME\` | naam van de app: titel, beschrijving, UI (ook in de browser) | \`env.appName\` |
+| \`PORT\` | poort voor \`npm run dev\` en \`npm run start\` | \`env.port\` |
+
+- **Altijd via \`src/lib/env.ts\`** (\`import { env } from '@/lib/env'\`), nooit
+  \`process.env\` rechtstreeks. Zo staat elke instelling met terugvalwaarde op
+  één plek.
+- \`.env\` gaat **niet** mee in git; \`.env.example\` wel. Een nieuwe instelling
+  zet je in alle drie (\`.env\`, \`.env.example\`, \`src/lib/env.ts\`). Geheimen
+  nooit in \`.env.example\`.
+- Next.js leest \`PORT\` zelf niet uit \`.env\`; daarom starten \`dev\` en
+  \`start\` via \`scripts/next.mjs\`. Na het wijzigen van \`.env\`: dev-server
+  herstarten (\`NEXT_PUBLIC_\`-waarden worden bij het bouwen ingevuld).
 
 \`\`\`tsx
 // Server component
