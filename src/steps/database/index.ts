@@ -497,7 +497,7 @@ healthRouter.get('/', async (_req, res) => {
 /** Bij het opstarten eerst de control-database migreren. */
 function patchStartup(target: string, nest: boolean): void {
     const file = path.join(target, 'src', nest ? 'main.ts' : 'index.ts')
-    let source = fs.readFileSync(file, 'utf8')
+    let source = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
     source = source.replace(
         /(import \{ env \} from '\.\/env\.js'\n)/,
         `$1import { controlPool } from './db/control.js'\nimport { runMigrations } from './db/migrate.js'\n`

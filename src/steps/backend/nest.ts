@@ -78,12 +78,15 @@ export class I18nExceptionFilter implements ExceptionFilter {
 /** HealthModule registreren in AppModule. */
 export function registerHealthModule(target: string): void {
     const file = path.join(target, 'src', 'app.module.ts')
-    let source = fs.readFileSync(file, 'utf8')
+    // nest new op Windows schrijft CRLF: eerst gelijktrekken, anders matcht niets.
+    let source = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
     if (source.includes('HealthModule')) return
-    source = source.replace(
-        /(import \{ Module \} from '@nestjs\/common';?\n)/,
-        `$1import { HealthModule } from './health/health.module.js';\n`
-    )
-    source = source.replace(/imports: \[\]/, 'imports: [HealthModule]')
+    const importLine = `import { HealthModule } from './health/health.module.js'\n`
+    const withImport = source.replace(/(import \{ Module \} from '@nestjs\/common';?\n)/, `$1${importLine}`)
+    // Import nooit kwijt: lukt de regex niet, dan bovenaan.
+    source = withImport !== source ? withImport : importLine + source
+    const withModule = source.replace(/imports:\s*\[\s*\]/, 'imports: [HealthModule]')
+    if (withModule === source) throw new Error('HealthModule kon niet in src/app.module.ts gezet worden.')
+    source = withModule
     fs.writeFileSync(file, source, 'utf8')
 }
