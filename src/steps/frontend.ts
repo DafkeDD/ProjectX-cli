@@ -11,7 +11,8 @@ import { iconPackages, setupIcons, type IconLibrary } from './icons.js'
 import { setupRules } from './rules.js'
 import { setupEslintPrettier, setupVsCode } from './editor.js'
 import { setupEnv, type AppConfig } from './env.js'
-import { installProjectxUi, UI_COMPONENTS_DIR, type UiResult } from './ui.js'
+import { installProjectxUi, UI_COMPONENTS_DIR, type UiChoice, type UiResult } from './ui.js'
+import { writeUiTemplates } from './ui-templates.js'
 import { setupPrettier, formatAll } from '../utils/prettier.js'
 import type { PackageManager } from '../types.js'
 
@@ -64,8 +65,8 @@ export interface FrontendOptions {
     icons: IconLibrary
     app: AppConfig
     port: number
-    /** ProjectX-UI installeren? */
-    ui: boolean
+    /** ProjectX-UI: null = niet installeren. */
+    ui: UiChoice | null
 }
 
 export async function scaffoldFrontend(
@@ -113,13 +114,15 @@ export async function scaffoldFrontend(
 
             if (ui) {
                 update('ProjectX-UI ophalen van GitHub (alle componenten)')
-                uiResult = await installProjectxUi(target)
+                uiResult = await installProjectxUi(target, ui)
             }
             const withUi = uiResult?.ok === true
 
             update('next-intl + light/dark mode + iconen opzetten')
             setupTheme(target, icons, withUi)
             setupNextIntl(target, i18n, withUi)
+            // Met ProjectX-UI: startpagina, taalkiezer en themaknop ENKEL met UI-componenten.
+            if (withUi) writeUiTemplates(target)
             setupIcons(target, icons)
             await runQuiet(pm, ['install', 'next-intl@latest', ...iconPackages(icons)], target)
 
@@ -151,7 +154,7 @@ export async function scaffoldFrontend(
     )
     if (uiResult?.ok) {
         p.log.success(
-            `ProjectX-UI: ${uiResult.count} componenten in ./${FRONTEND_DIR}/${UI_COMPONENTS_DIR}` +
+            `ProjectX-UI: ${uiResult.count} componenten (+ afhankelijkheden) in ./${FRONTEND_DIR}/${UI_COMPONENTS_DIR}` +
                 pc.dim(`  (import { Button } from '@/components/ui' · bijwerken: npm run ui -- add --all --force)`)
         )
     } else if (uiResult) {

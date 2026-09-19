@@ -437,7 +437,7 @@ export default async function LocaleLayout({
 import LocaleSwitcher from '@/components/LocaleSwitcher'
 import ThemeToggle from '@/components/theme/ThemeToggle'
 import { routing } from '@/i18n/routing'
-import { env } from '@/lib/env'${ui ? "\nimport { Badge } from '@/components/ui'" : ''}
+import { env } from '@/lib/env'
 
 export default async function Home() {
     const t = await getTranslations('HomePage')
@@ -447,13 +447,7 @@ export default async function Home() {
     return (
         <main className='flex flex-1 flex-col items-center justify-center p-8'>
             <div className='w-full max-w-xl border-border bg-card text-card-foreground rounded-xl border p-8 text-center'>
-${
-    ui
-        ? `                <Badge tone='accent' className='mb-3'>
-                    {env.appName}
-                </Badge>`
-        : `                <p className='text-primary mb-2 text-sm font-medium'>{env.appName}</p>`
-}
+                <p className='text-primary mb-2 text-sm font-medium'>{env.appName}</p>
                 <h1 className='text-3xl font-semibold tracking-tight'>{t('title')}</h1>
                 <p className='text-muted-foreground mt-3 text-sm leading-relaxed'>{t('description')}</p>
 

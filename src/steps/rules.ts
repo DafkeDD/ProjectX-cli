@@ -50,10 +50,13 @@ Componenten komen in \`src/components/ui/\`, met Tailwind en de design tokens. \
 
 ${iconRule(icons)}`
     }
-    return `## 2. UI-componenten — ProjectX-UI eerst
+    return `## 2. UI-componenten — ENKEL ProjectX-UI
 
-- Gebruik **altijd eerst ProjectX-UI**: \`import { Button, Dialog, Table } from '@/components/ui'\`. Bouw nooit een
-  component na dat daar al bestaat (lijst: \`npm run ui -- list\`).
+- Gebruik **enkel componenten van ProjectX-UI**: \`import { Button, Dialog, Table } from '@/components/ui'\`. Nooit zelf
+  een knop, input, kaart, dialog, badge, ... bouwen met losse \`<button>\`/\`<div>\` + Tailwind.
+- Nog niet geïnstalleerd? \`npm run ui -- add <naam>\` (lijst: \`npm run ui -- list\`). Bestaat het niet in ProjectX-UI,
+  maak het dan in de ProjectX-UI-repo — niet in dit project.
+- Tailwind alleen voor layout (flex, grid, gap, padding, breedte) rond de componenten.
 - \`src/components/ui/\` wordt beheerd vanuit github.com/DafkeDD/ProjectX-ui. **Niet met de hand aanpassen** — wijzig
   de library en haal op met \`npm run ui -- add --all --force\`. Eigen componenten komen in \`src/components/\`.
 - Geen andere component library: geen shadcn/ui, Radix, MUI, Chakra, Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI.
@@ -117,13 +120,18 @@ volledig zelf gebouwd.
 | Alles bijwerken | \`npm run ui -- add --all --force\` |
 | Kleuren | \`src/components/ui/tokens.css\` (licht + \`[data-theme="dark"]\`) |
 
-1. **Eerst ProjectX-UI.** Bestaat een component al in de library, gebruik
-   dat. Nooit een eigen knop, dialog of tabel bouwen naast de bestaande.
+1. **ENKEL ProjectX-UI-componenten.** Elke knop, input, kaart, badge, dialog,
+   tabel, ... komt uit \`@/components/ui\`. Nooit zelf nabouwen met losse
+   \`<button>\` / \`<div>\` + Tailwind. Tailwind is er alleen voor layout
+   (flex, grid, gap, padding, breedte).
+   Nog niet geïnstalleerd? \`npm run ui -- add <naam>\`. Bestaat het niet in
+   ProjectX-UI, dan hoort het in de ProjectX-UI-repo — niet in dit project.
 2. **\`src/components/ui/\` niet met de hand aanpassen.** Die map wordt
    overschreven bij het bijwerken. Een fout of nieuw component hoort in de
    ProjectX-UI-repo; daarna \`npm run ui -- add --all --force\`.
-3. **Eigen componenten** (samenstellingen voor dit project) komen in
-   \`src/components/\`, opgebouwd uit ProjectX-UI + Tailwind + tokens.
+3. **Eigen componenten** in \`src/components/\` zijn alleen *samenstellingen*
+   van ProjectX-UI-componenten (zoals \`LocaleSwitcher\` = \`Segmented\`,
+   \`ThemeToggle\` = \`Segmented\` + \`Icon\`).
 4. **Geen andere component library** (shadcn/ui, Radix, MUI, Chakra, ...).
 5. De Tailwind-namen (\`bg-card\`, \`text-muted-foreground\`, \`bg-primary\`, ...)
    wijzen naar de ProjectX-UI-tokens — ze blijven dus bruikbaar én passen

@@ -106,19 +106,23 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 - **VS Code** — in de projectmap (niet in `./frontend`): `.vscode/settings.json` formatteert bij opslaan met Prettier,
   voert ESLint-fixes uit en herkent Tailwind v4; `.vscode/extensions.json` raadt Prettier, ESLint en Tailwind CSS
   IntelliSense aan. Een bestaande `.vscode` wordt niet overschreven.
-- **ProjectX-UI — vraag: installeren?** ([DafkeDD/ProjectX-ui](https://github.com/DafkeDD/ProjectX-ui))
-    - alle 68 componenten als broncode in `src/components/ui/` (zoals shadcn), geïmporteerd via
-      `import { Button } from '@/components/ui'`
-    - opgehaald over HTTPS van GitHub, **niet** als git-package — anders zou elke `npm install` in de frontend op npm 12
-      mislukken (`EALLOWGIT`)
-    - `globals.css` neemt de design tokens over: `bg-card`, `text-muted-foreground`, ... wijzen naar de UI-tokens; de
-      UI-CSS zit in de cascade-laag `components`, dus Tailwind-classes kunnen een component nog aanpassen
-    - lettertypes uit het design (Hanken Grotesk, JetBrains Mono) via `next/font`; `data-theme` op `<html>` volgt de
-      light/dark-keuze
-    - later bijwerken: `npm run ui -- list`, `npm run ui -- add <naam>`, `npm run ui -- add --all --force` (formatteert
-      daarna met Prettier)
-    - de nieuwe React Compiler-lintregels staan voor `src/components/ui/**` op waarschuwing (oplossen in de UI-repo)
-    - lukt het ophalen niet, dan gaat de installatie verder met de eigen tokens
+- **ProjectX-UI — drie vragen** ([DafkeDD/ProjectX-ui](https://github.com/DafkeDD/ProjectX-ui))
+    1. _Wil je ProjectX-UI installeren?_
+    2. _Welke componenten?_ — **Alles** of **Zelf kiezen**
+    3. bij _Zelf kiezen_: aanvinken per categorie (Basis, Formulieren, Overlays, ...). `card`, `badge`, `segmented`,
+       `section-header`, `separator` en `icon` staan aan en komen er altijd bij — de startpagina gebruikt ze.
+       Afhankelijkheden (bv. `button` → `spinner`) komen automatisch mee.
+    - **Met ProjectX-UI gebruikt de app ENKEL ProjectX-UI-componenten**: de startpagina is een `Card` met `Badge`,
+      `SectionHeader` en `Separator`; de taalkiezer en de themaknop zijn `Segmented` (+ `Icon`). Tailwind enkel voor
+      layout. Dat staat ook zo in de AI-regels.
+    - componenten als broncode in `src/components/ui/`, via `import { Button } from '@/components/ui'`
+    - opgehaald over HTTPS van GitHub, **niet** als git-package (anders faalt elke `npm install` op npm 12)
+    - `globals.css` neemt de design tokens over (`bg-card`, `text-muted-foreground`, ... wijzen naar de UI-tokens); de
+      UI-CSS zit in de cascade-laag `components`
+    - lettertypes Hanken Grotesk + JetBrains Mono via `next/font`; `data-theme` op `<html>` volgt licht/donker
+    - later: `npm run ui -- list`, `npm run ui -- add <naam>`, `npm run ui -- add --all --force` (daarna Prettier)
+    - React Compiler-lintregels voor `src/components/ui/**` op waarschuwing (oplossen in de UI-repo)
+    - niet bereikbaar? Dan vraagt de CLI of je zonder verder wil
 - **Prettier, altijd — met de vaste ProjectX-settings.** `templates/prettierrc.json` wordt ongewijzigd gekopieerd als
   `.prettierrc` (4 spaties, enkele quotes, geen puntkomma's, 120 tekens, `prettier-plugin-tailwindcss`, JSON met 4
   spaties). Huisstijl aanpassen = alleen dat ene bestand aanpassen. Scripts: `npm run format` en `npm run format:check`.
@@ -152,7 +156,7 @@ Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
-(`projectx-cli v0.9.0`). Klopt die niet, maak dan de npx-cache leeg:
+(`projectx-cli v0.10.0`). Klopt die niet, maak dan de npx-cache leeg:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"
@@ -180,7 +184,8 @@ src/
 │  ├─ rules.ts         PROJECT-RULES.md + AGENTS.md
 │  ├─ editor.ts        eslint-config-prettier + .vscode
 │  ├─ env.ts           app-naam + poort -> .env, src/lib/env.ts, scripts/next.mjs
-│  └─ ui.ts            ProjectX-UI ophalen + npm run ui
+│  ├─ ui.ts            ProjectX-UI: vragen, ophalen, npm run ui
+│  └─ ui-templates.ts  startpagina/taalkiezer/themaknop met ProjectX-UI
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```
 

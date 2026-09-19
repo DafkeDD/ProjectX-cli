@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import * as p from '@clack/prompts'
 import { runQuiet } from '../utils/exec.js'
+import pc from 'picocolors'
 import { orCancel } from '../utils/prompt.js'
 
 /**
@@ -24,14 +25,102 @@ const UI_CONFIG = {
     importAlias: '@/components/ui'
 }
 
-/** Vraag: ProjectX-UI installeren? */
-export async function askProjectxUi(): Promise<boolean> {
-    return orCancel(
-        await p.confirm({
-            message: 'Wil je ProjectX-UI installeren? (68 eigen componenten + design tokens)',
-            initialValue: true
+/** Wat er van ProjectX-UI geïnstalleerd wordt. */
+export type UiChoice = { all: true } | { all: false; components: string[] }
+
+interface RegistryComponent {
+    name: string
+    title: string
+    description: string
+    category: string
+    dependencies?: string[]
+}
+
+/**
+ * Componenten die de startpagina, de taalkiezer en de themaknop gebruiken.
+ * Bij "zelf kiezen" komen die er altijd bij — de app gebruikt ENKEL
+ * ProjectX-UI-componenten.
+ */
+export const REQUIRED_COMPONENTS = ['card', 'badge', 'segmented', 'section-header', 'separator', 'icon']
+
+async function fetchRegistry(): Promise<RegistryComponent[]> {
+    const response = await fetch(UI_REGISTRY)
+    if (!response.ok) throw new Error(`${UI_REGISTRY} gaf ${response.status}`)
+    const registry = (await response.json()) as { components?: RegistryComponent[] }
+    return registry.components ?? []
+}
+
+/**
+ * Vragen over ProjectX-UI, in drie delen:
+ *   1. installeren?
+ *   2. alles of zelf kiezen?
+ *   3. (bij zelf kiezen) aanvinken welke componenten
+ * Geeft null terug als ProjectX-UI niet geïnstalleerd wordt.
+ */
+export async function askProjectxUi(): Promise<UiChoice | null> {
+    const install = orCancel(await p.confirm({ message: 'Wil je ProjectX-UI installeren?', initialValue: true }))
+    if (!install) return null
+
+    const spinner = p.spinner()
+    spinner.start('Componentenlijst ophalen van GitHub')
+    let components: RegistryComponent[]
+    try {
+        components = await fetchRegistry()
+        spinner.stop(`ProjectX-UI: ${components.length} componenten beschikbaar`)
+    } catch (err) {
+        spinner.stop('ProjectX-UI is niet bereikbaar', 1)
+        p.log.warn(err instanceof Error ? err.message : String(err))
+        const goOn = orCancel(await p.confirm({ message: 'Verder zonder ProjectX-UI?', initialValue: true }))
+        if (!goOn) {
+            p.cancel('Gestopt.')
+            process.exit(0)
+        }
+        return null
+    }
+
+    const mode = orCancel(
+        await p.select<'all' | 'pick'>({
+            message: 'Welke componenten?',
+            initialValue: 'all',
+            options: [
+                { value: 'all', label: `Alles`, hint: `alle ${components.length}` },
+                { value: 'pick', label: 'Zelf kiezen' }
+            ]
         })
     )
+    if (mode === 'all') return { all: true }
+
+    // Gegroepeerd per categorie, in de volgorde van de registry.
+    const groups: Record<string, { value: string; label: string; hint: string }[]> = {}
+    for (const c of components) {
+        const required = REQUIRED_COMPONENTS.includes(c.name)
+        ;(groups[c.category] ??= []).push({
+            value: c.name,
+            label: c.title,
+            hint: required ? 'nodig voor de startpagina' : c.description
+        })
+    }
+
+    const picked = orCancel(
+        await p.groupMultiselect<string>({
+            message: `Vink aan wat je wil ${pc.dim('(spatie = aan/uit, enter = bevestigen)')}`,
+            options: groups,
+            initialValues: REQUIRED_COMPONENTS,
+            required: false
+        })
+    )
+
+    const added = REQUIRED_COMPONENTS.filter(name => !picked.includes(name))
+    if (added.length > 0) {
+        p.log.info(`Toegevoegd omdat de startpagina ze gebruikt: ${added.join(', ')}`)
+    }
+    const all = new Set([...picked, ...REQUIRED_COMPONENTS])
+    return { all: false, components: components.map(c => c.name).filter(name => all.has(name)) }
+}
+
+export function uiLabel(choice: UiChoice | null): string {
+    if (!choice) return 'geen'
+    return choice.all ? 'ProjectX-UI — alle componenten' : `ProjectX-UI — ${choice.components.length} gekozen`
 }
 
 /**
@@ -69,7 +158,7 @@ if (['add', 'init'].includes(args[0])) {
  */
 export type UiResult = { ok: true; count: number } | { ok: false; error: string }
 
-export async function installProjectxUi(target: string): Promise<UiResult> {
+export async function installProjectxUi(target: string, choice: UiChoice): Promise<UiResult> {
     try {
         const response = await fetch(UI_BIN)
         if (!response.ok) throw new Error(`${UI_BIN} gaf ${response.status}`)
@@ -81,15 +170,17 @@ export async function installProjectxUi(target: string): Promise<UiResult> {
 
         const cli = path.join('scripts', 'projectx-ui.mjs')
         await runQuiet('node', [cli, 'init', '--yes', '--registry', UI_REGISTRY], target)
-        await runQuiet('node', [cli, 'add', '--all', '--registry', UI_REGISTRY], target)
+        // Afhankelijkheden (bv. button -> spinner) haalt de ProjectX-UI-CLI zelf mee.
+        const names = choice.all ? ['--all'] : choice.components
+        await runQuiet('node', [cli, 'add', ...names, '--registry', UI_REGISTRY], target)
 
         const pkgFile = path.join(target, 'package.json')
         const pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf8')) as { scripts?: Record<string, string> }
         pkg.scripts = { ...pkg.scripts, ui: 'node scripts/ui.mjs' }
         fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n', 'utf8')
 
-        const registry = (await (await fetch(UI_REGISTRY)).json()) as { components?: unknown[] }
-        return { ok: true, count: registry.components?.length ?? 0 }
+        const count = choice.all ? (await fetchRegistry()).length : choice.components.length
+        return { ok: true, count }
     } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message.split('\n')[0] : String(err) }
     }
