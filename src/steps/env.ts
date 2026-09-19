@@ -50,7 +50,7 @@ export async function askPort(): Promise<number> {
 /** Waarde voor .env: tussen dubbele quotes, zodat spaties en # geen probleem zijn. */
 const quote = (value: string) => `"${value}"`
 
-function envFile(appName: string, port: number, example: boolean): string {
+function envFile(appName: string, port: number, example: boolean, apiUrl?: string): string {
     return `# ${example ? 'Voorbeeld — kopieer naar .env en vul in. Dit bestand gaat WEL mee in git.' : 'Lokale instellingen — gaat NIET mee in git (zie .env.example).'}
 #
 # Gebruik deze waarden in de code altijd via src/lib/env.ts, nooit rechtstreeks
@@ -62,10 +62,17 @@ NEXT_PUBLIC_APP_NAME=${quote(appName)}
 
 # Poort voor npm run dev en npm run start (scripts/next.mjs leest hem hier).
 PORT=${port}
+${
+    apiUrl
+        ? `
+# Adres van de backend (API). Gebruik in de code: env.apiUrl.
+NEXT_PUBLIC_API_URL=${quote(apiUrl)}
 `
+        : ''
+}`
 }
 
-const ENV_TS = `/**
+const envTs = (api: boolean) => `/**
  * Alle instellingen uit .env op één plek, met een terugvalwaarde.
  * Gebruik overal \`env.appName\` / \`env.port\` — nooit process.env rechtstreeks.
  *
@@ -76,7 +83,13 @@ export const env = {
     /** Naam van de app (NEXT_PUBLIC_APP_NAME) — ook in client components. */
     appName: process.env.NEXT_PUBLIC_APP_NAME || 'App',
     /** Poort van de frontend (PORT) — alleen op de server. */
-    port: Number(process.env.PORT) || ${DEFAULT_PORT}
+    port: Number(process.env.PORT) || ${DEFAULT_PORT}${
+        api
+            ? `,
+    /** Adres van de backend (NEXT_PUBLIC_API_URL). */
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'`
+            : ''
+    }
 } as const
 `
 
@@ -104,12 +117,12 @@ child.on('exit', code => process.exit(code ?? 0))
 `
 
 /** Schrijft .env, .env.example, src/lib/env.ts en scripts/next.mjs, en past de scripts aan. */
-export function setupEnv(target: string, { appName }: AppConfig, port: number): void {
-    fs.writeFileSync(path.join(target, '.env'), envFile(appName, port, false), 'utf8')
-    fs.writeFileSync(path.join(target, '.env.example'), envFile(appName, port, true), 'utf8')
+export function setupEnv(target: string, { appName }: AppConfig, port: number, apiUrl?: string): void {
+    fs.writeFileSync(path.join(target, '.env'), envFile(appName, port, false, apiUrl), 'utf8')
+    fs.writeFileSync(path.join(target, '.env.example'), envFile(appName, port, true, apiUrl), 'utf8')
 
     fs.mkdirSync(path.join(target, 'src', 'lib'), { recursive: true })
-    fs.writeFileSync(path.join(target, 'src', 'lib', 'env.ts'), ENV_TS, 'utf8')
+    fs.writeFileSync(path.join(target, 'src', 'lib', 'env.ts'), envTs(Boolean(apiUrl)), 'utf8')
 
     fs.mkdirSync(path.join(target, 'scripts'), { recursive: true })
     fs.writeFileSync(path.join(target, 'scripts', 'next.mjs'), NEXT_RUNNER, 'utf8')

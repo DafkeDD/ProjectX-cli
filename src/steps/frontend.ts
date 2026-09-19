@@ -9,11 +9,12 @@ import { setupNextIntl, type I18nConfig } from './i18n.js'
 import { setupTheme } from './theme.js'
 import { iconPackages, setupIcons, type IconLibrary } from './icons.js'
 import { setupRules } from './rules.js'
-import { setupEslintPrettier, setupVsCode } from './editor.js'
+import { setupEslintPrettier } from './editor.js'
 import { setupEnv, type AppConfig } from './env.js'
 import { installProjectxUi, UI_COMPONENTS_DIR, type UiChoice, type UiResult } from './ui.js'
 import { writeUiTemplates } from './ui-templates.js'
 import { setupNotFound } from './notfound.js'
+import { appendApiRules, setupBackendStatus } from './backend-status.js'
 import { setupPrettier, formatAll } from '../utils/prettier.js'
 import type { PackageManager } from '../types.js'
 
@@ -66,6 +67,8 @@ export interface FrontendOptions {
     icons: IconLibrary
     app: AppConfig
     port: number
+    /** Adres van de backend; dan komt er een status-blok op de startpagina. */
+    apiUrl?: string
     /** ProjectX-UI: null = niet installeren. */
     ui: UiChoice | null
 }
@@ -74,7 +77,7 @@ export async function scaffoldFrontend(
     frontend: Frontend,
     projectDir: string,
     pm: PackageManager,
-    { i18n, icons, app, port, ui }: FrontendOptions
+    { i18n, icons, app, port, ui, apiUrl }: FrontendOptions
 ): Promise<void> {
     if (frontend === 'none') {
         p.log.info('Geen frontend gekozen — overgeslagen.')
@@ -82,7 +85,6 @@ export async function scaffoldFrontend(
     }
 
     const target = path.join(projectDir, FRONTEND_DIR)
-    let vscode = false
     /** Resultaat van ProjectX-UI; bij een fout gaat de rest gewoon door met de eigen tokens. */
     let uiResult = null as UiResult | null
 
@@ -125,22 +127,23 @@ export async function scaffoldFrontend(
             // Met ProjectX-UI: startpagina, taalkiezer en themaknop ENKEL met UI-componenten.
             if (withUi) writeUiTemplates(target)
             setupNotFound(target, i18n.locales, withUi)
+            if (apiUrl) setupBackendStatus(target, i18n.locales, withUi)
             setupIcons(target, icons)
             await runQuiet(pm, ['install', 'next-intl@latest', ...iconPackages(icons)], target)
 
             update('.env met app-naam en poort')
-            setupEnv(target, app, port)
+            setupEnv(target, app, port, apiUrl)
 
             update('Regels voor AI-assistenten schrijven')
             setupRules(target, i18n, icons, withUi)
+            if (apiUrl) appendApiRules(target)
 
             update('Turbopack controleren')
             ensureTurbopack(target)
 
-            update('Prettier + ESLint + VS Code instellen en alles formatteren')
+            update('Prettier + ESLint instellen en alles formatteren')
             await setupPrettier(pm, target)
             await setupEslintPrettier(pm, target, withUi)
-            vscode = setupVsCode(projectDir, [FRONTEND_DIR])
             await formatAll(pm, target)
         },
         90000
@@ -165,11 +168,6 @@ export async function scaffoldFrontend(
                 'De frontend gebruikt zijn eigen tokens — verder werkt alles. Later alsnog: draai de CLI opnieuw in een lege map.'
         )
     }
-    p.log.info(
-        vscode
-            ? `VS Code-instellingen in ./.vscode ${pc.dim('(open de projectmap in VS Code en installeer de aanbevolen extensies)')}`
-            : `./.vscode bestond al ${pc.dim('— niet overschreven')}`
-    )
 }
 
 /**

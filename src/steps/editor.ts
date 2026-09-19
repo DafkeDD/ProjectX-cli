@@ -51,14 +51,22 @@ export default eslintConfig
     await runQuiet(pm, ['install', '--save-dev', 'eslint-config-prettier@latest'], target)
 }
 
+export interface VsCodeApps {
+    /** Mappen met ESLint (frontend, Express-backend). */
+    eslintDirs: string[]
+    /** Map waarvan VS Code de TypeScript-versie gebruikt. */
+    tsDir: string
+    /** NestJS gebruikt oxlint i.p.v. ESLint. */
+    oxlint: boolean
+    /** Tailwind-ondersteuning (enkel als er een frontend is). */
+    tailwind: boolean
+}
+
 /**
- * VS Code-instellingen in de PROJECTMAP (niet in ./frontend), want daar open
- * je het project — straks ook met een backend ernaast. Bestaat .vscode al,
- * dan laten we het met rust.
- *
- * @param appDirs submappen met een eigen package.json (voor ESLint).
+ * VS Code-instellingen in de PROJECTMAP (niet in ./frontend of ./backend),
+ * want daar open je het project. Bestaat .vscode al, dan laten we het met rust.
  */
-export function setupVsCode(projectDir: string, appDirs: string[]): boolean {
+export function setupVsCode(projectDir: string, apps: VsCodeApps): boolean {
     const dir = path.join(projectDir, '.vscode')
     const settingsFile = path.join(dir, 'settings.json')
     const extensionsFile = path.join(dir, 'extensions.json')
@@ -69,19 +77,31 @@ export function setupVsCode(projectDir: string, appDirs: string[]): boolean {
         'editor.defaultFormatter': 'esbenp.prettier-vscode',
         'editor.formatOnSave': true,
         'prettier.requireConfig': true,
-        // ESLint-fixes bij opslaan.
-        'editor.codeActionsOnSave': { 'source.fixAll.eslint': 'explicit' },
-        'eslint.workingDirectories': appDirs.map(d => ({ directory: d, changeProcessCWD: true })),
-        // Tailwind v4: @custom-variant, @theme, ... herkennen + suggesties in className.
-        'files.associations': { '*.css': 'tailwindcss' },
-        'tailwindCSS.classFunctions': ['clsx', 'cn'],
+        // Lint-fixes bij opslaan.
+        'editor.codeActionsOnSave': {
+            'source.fixAll.eslint': 'explicit',
+            ...(apps.oxlint ? { 'source.fixAll.oxc': 'explicit' } : {})
+        },
+        'eslint.workingDirectories': apps.eslintDirs.map(d => ({ directory: d, changeProcessCWD: true })),
+        ...(apps.tailwind
+            ? {
+                  // Tailwind v4: @custom-variant, @theme, ... herkennen + suggesties in className.
+                  'files.associations': { '*.css': 'tailwindcss' },
+                  'tailwindCSS.classFunctions': ['clsx', 'cn']
+              }
+            : {}),
         // TypeScript van het project gebruiken, niet die van VS Code.
-        'typescript.tsdk': `${appDirs[0] ?? '.'}/node_modules/typescript/lib`,
+        'typescript.tsdk': `${apps.tsDir}/node_modules/typescript/lib`,
         'typescript.enablePromptUseWorkspaceTsdk': true
     })
 
     writeJson(extensionsFile, {
-        recommendations: ['esbenp.prettier-vscode', 'dbaeumer.vscode-eslint', 'bradlc.vscode-tailwindcss']
+        recommendations: [
+            'esbenp.prettier-vscode',
+            'dbaeumer.vscode-eslint',
+            ...(apps.tailwind ? ['bradlc.vscode-tailwindcss'] : []),
+            ...(apps.oxlint ? ['oxc.oxc-vscode'] : [])
+        ]
     })
     return true
 }

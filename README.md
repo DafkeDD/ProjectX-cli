@@ -29,7 +29,7 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 | #   | Stap     | Keuzes                                                                                       | Resultaat                        |
 | --- | -------- | -------------------------------------------------------------------------------------------- | -------------------------------- |
 | 1   | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark + iconen (keuze), of geen | `./frontend`                     |
-| 2   | Backend  | _volgt_                                                                                      |                                  |
+| 2   | Backend  | NestJS (standaard) of Node.js + Express 5, of geen                                           | `./backend`                      |
 | ∞   | GitHub   | pushen? + projectnaam + privé/openbaar                                                       | repo op GitHub, of de commando's |
 
 ### 1. Frontend
@@ -161,6 +161,37 @@ frontend/
 
 Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet.
 
+### 2. Backend
+
+Vragen: _Welke backend?_ — **NestJS** (bovenaan) · **Node.js + Express** · geen — en _Op welke poort?_ (eerste vrije
+vanaf 4000, nooit die van de frontend). Kies je geen frontend, dan vraagt de CLI hier de talen.
+
+|            | NestJS                                 | Node.js + Express                                   |
+| ---------- | -------------------------------------- | --------------------------------------------------- |
+| Aanmaak    | `@nestjs/cli@latest new` (ESM, strict) | eigen template, Express 5 (ESM)                     |
+| Starten    | `npm run start:dev`                    | `npm run dev` (`tsx watch`)                         |
+| Lint       | oxlint (van Nest)                      | ESLint + typescript-eslint + eslint-config-prettier |
+| Tests      | vitest (van Nest)                      | —                                                   |
+| TypeScript | ^6 (Nest pint dit)                     | ^6 (typescript-eslint ondersteunt 7 nog niet)       |
+
+Altijd, bij beide:
+
+- **`.env`** (`APP_NAME`, `PORT`, `FRONTEND_URL`) + `.env.example`, gelezen via `src/env.ts` (`process.loadEnvFile`,
+  geen extra package)
+- **CORS** — enkel `FRONTEND_URL`, met cookies
+- **`GET /health`** → `{ status, app, version, time }`
+- **Meertalige foutmeldingen** — dezelfde talen als de frontend; taal uit de cookie `NEXT_LOCALE`, dan
+  `Accept-Language`. Antwoord: `{ statusCode, error: 'notFound', message: 'Dit werd niet gevonden.' }`. Nest:
+  `I18nExceptionFilter` (`throw new BadRequestException({ key: 'conflict' })`); Express: error-middleware
+  (`throw new HttpError(409, 'conflict')`). Teksten in `src/i18n/messages.ts`.
+- **Prettier** met de vaste ProjectX-`.prettierrc`, **AGENTS.md/CLAUDE.md** met de backend-regels
+
+Met een frontend erbij:
+
+- frontend `.env` krijgt `NEXT_PUBLIC_API_URL`, in code `env.apiUrl`
+- **demo op de startpagina**: blok "Backend" met _Online · v0.0.1_ of _Niet bereikbaar_ (ProjectX-UI `Badge`)
+- `.vscode` in de projectmap kent beide apps (ESLint-mappen, oxc-extensie bij NestJS)
+
 ## GitHub — altijd de laatste vraag
 
 1. _Wil je dit naar GitHub pushen?_
@@ -179,7 +210,7 @@ Na de installatie zet de CLI in de projectmap een `.gitignore` en `README.md`, e
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
-(`projectx-cli v0.12.0`). Klopt die niet, maak dan de npx-cache leeg:
+(`projectx-cli v0.13.0`). Klopt die niet, maak dan de npx-cache leeg:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"
@@ -210,6 +241,8 @@ src/
 │  ├─ ui.ts            ProjectX-UI: vragen, ophalen, npm run ui
 │  ├─ ui-templates.ts  startpagina/taalkiezer/themaknop met ProjectX-UI
 │  ├─ notfound.ts      vertaalde 404
+│  ├─ backend-status.ts  blok "Backend" op de startpagina
+│  ├─ backend/         NestJS / Express (index, nest, express, shared)
 │  └─ github.ts        pushen naar GitHub of de commando's tonen
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```
