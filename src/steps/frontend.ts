@@ -8,6 +8,8 @@ import { orCancel } from "../utils/prompt.js";
 import { setupNextIntl, type I18nConfig } from "./i18n.js";
 import { setupTheme } from "./theme.js";
 import { iconPackages, setupIcons, type IconLibrary } from "./icons.js";
+import { setupRules } from "./rules.js";
+import { setupPrettier, formatAll } from "../utils/prettier.js";
 import type { PackageManager } from "../types.js";
 
 /** Submap binnen het project voor de frontend. */
@@ -25,7 +27,7 @@ export async function askFrontend(): Promise<Frontend> {
         {
           value: "nextjs",
           label: "Next.js + Tailwind CSS",
-          hint: "laatste versies · TypeScript · ESLint · src/ · Turbopack · next-intl · light/dark · iconen",
+          hint: "laatste versies · TypeScript · ESLint · Prettier · src/ · Turbopack · next-intl · light/dark · iconen · AI-regels",
         },
         { value: "none", label: "Geen frontend" },
       ],
@@ -52,7 +54,7 @@ export function checkFrontend(frontend: Frontend, projectDir: string): string | 
 /**
  * Stap 1 — installatie: Next.js (create-next-app@latest) in ./frontend,
  * Tailwind expliciet op @latest, en altijd next-intl (gekozen talen) en
- * light/dark mode (theme.ts).
+ * light/dark mode (theme.ts), Prettier en regels voor AI-assistenten.
  */
 export async function scaffoldFrontend(
   frontend: Frontend,
@@ -101,10 +103,17 @@ export async function scaffoldFrontend(
       setupIcons(target, icons);
       await runQuiet(pm, ["install", "next-intl@latest", ...iconPackages(icons)], target);
 
+      update("Regels voor AI-assistenten schrijven");
+      setupRules(target, i18n, icons);
+
       update("Turbopack controleren");
       ensureTurbopack(target);
+
+      update("Prettier installeren en alles formatteren");
+      await setupPrettier(pm, target);
+      await formatAll(pm, target);
     },
-    75000,
+    90000,
   );
 
   const versions = readVersions(target);

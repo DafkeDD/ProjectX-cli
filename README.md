@@ -98,8 +98,25 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
   <FontAwesomeIcon icon={faHouse} />
   ```
 
+- **Prettier, altijd** — `.prettierrc` in dezelfde huisstijl als starter-cli
+  (4 spaties, enkele quotes, geen puntkomma's, 120 tekens) +
+  `prettier-plugin-tailwindcss` die Tailwind-classes sorteert. Scripts:
+  `npm run format` en `npm run format:check`. Na de installatie wordt alles
+  meteen geformatteerd.
+- **Regels voor AI-assistenten, altijd** — volgen je keuzes (talen, iconen):
+  - `PROJECT-RULES.md`: de volledige regels met voorbeelden, voor mensen
+  - `AGENTS.md`: een beknopt blok tussen `<!-- BEGIN/END:projectx-rules -->`,
+    dat Claude Code, Copilot, Cursor, Codex, ... automatisch lezen
+    (`CLAUDE.md` verwijst naar `@AGENTS.md`)
+  - regels: i18n (nooit hard gecodeerde tekst), UI-componenten zelf bouwen
+    (geen shadcn/MUI/...), alleen de gekozen icon-library, kleuren via tokens
+    (dark mode), Prettier + ESLint
+
 ```
 frontend/
+├─ PROJECT-RULES.md     regels (mensen)
+├─ AGENTS.md            regels (AI-assistenten) + blok van Next.js
+├─ .prettierrc
 ├─ messages/            één .json per gekozen taal
 └─ src/
    ├─ proxy.ts          next-intl middleware
@@ -117,7 +134,7 @@ Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit
-op. Je ziet de versie bovenaan (`projectx-cli v0.4.0`). Klopt die niet, maak
+op. Je ziet de versie bovenaan (`projectx-cli v0.5.0`). Klopt die niet, maak
 dan de npx-cache leeg:
 
 ```powershell
@@ -141,8 +158,9 @@ src/
 │  ├─ frontend.ts      askFrontend / checkFrontend / scaffoldFrontend
 │  ├─ i18n.ts          next-intl: talen, bestanden, vertalingen
 │  ├─ theme.ts         light/dark mode + design tokens
-│  └─ icons.ts         React Icons / Font Awesome / beide
-└─ utils/              exec, progress-bar, prompt-helpers
+│  ├─ icons.ts         React Icons / Font Awesome / beide
+│  └─ rules.ts         PROJECT-RULES.md + AGENTS.md
+└─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```
 
 Een nieuwe stap toevoegen = een bestand in `src/steps/` met een `ask…`, een
