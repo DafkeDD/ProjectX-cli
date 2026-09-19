@@ -172,7 +172,7 @@ Na de installatie zet de CLI in de projectmap een `.gitignore` en `README.md`, e
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
-(`projectx-cli v0.11.0`). Klopt die niet, maak dan de npx-cache leeg:
+(`projectx-cli v0.11.1`). Klopt die niet, maak dan de npx-cache leeg:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"

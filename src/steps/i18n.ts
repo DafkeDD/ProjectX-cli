@@ -304,6 +304,10 @@ import createNextIntlPlugin from 'next-intl/plugin'
 import { locales } from './src/i18n/locales'
 
 const nextConfig: NextConfig = {
+    // Deze map is de root: anders gokt Next.js verkeerd zodra er hoger nog een
+    // package-lock.json staat (bv. later een backend of monorepo ernaast).
+    turbopack: { root: __dirname },
+
     /**
      * Vangnet: de taal hoort NOOIT in de URL.
      *   /nl      -> /

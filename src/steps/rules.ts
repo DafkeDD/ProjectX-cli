@@ -62,7 +62,8 @@ ${iconRule(icons)}`
 - Geen andere component library: geen shadcn/ui, Radix, MUI, Chakra, Ant Design, HeadlessUI, DaisyUI, NextUI/HeroUI.
 - CSS-klassen van de library beginnen met \`pxui-\`; hergebruik die niet in eigen code, gebruik Tailwind + tokens.
 
-${iconRule(icons)} ProjectX-UI heeft ook een eigen icon set (\`Icon\` uit \`@/components/ui\`).`
+Iconen: **eerst** \`Icon\` uit ProjectX-UI (\`<Icon name='home' />\`). Ontbreekt een icoon daar (bv. merklogo's),
+dan pas ${usesReactIcons(icons) && usesFontAwesome(icons) ? '\`react-icons\` of Font Awesome' : usesReactIcons(icons) ? '\`react-icons\`' : 'Font Awesome'}. Nooit \`lucide-react\`.`
 }
 
 function projectUi(ui: boolean, icons: IconLibrary): string {
@@ -136,8 +137,9 @@ volledig zelf gebouwd.
 5. De Tailwind-namen (\`bg-card\`, \`text-muted-foreground\`, \`bg-primary\`, ...)
    wijzen naar de ProjectX-UI-tokens — ze blijven dus bruikbaar én passen
    bij de library.
-6. ${iconRule(icons)} ProjectX-UI heeft daarnaast een eigen icon set
-   (\`Icon\` uit \`@/components/ui\`).
+6. **Iconen: eerst \`Icon\` uit ProjectX-UI** (\`<Icon name='home' />\`, 24×24,
+   volgt de tekstkleur). Ontbreekt een icoon daar (bv. merklogo's), dan pas
+   ${usesReactIcons(icons) && usesFontAwesome(icons) ? '\`react-icons\` of Font Awesome' : usesReactIcons(icons) ? '\`react-icons\`' : 'Font Awesome'}. Nooit \`lucide-react\`.
 
 \`\`\`tsx
 import { Badge, Button, Card, CardHeader, CardTitle } from '@/components/ui'
@@ -306,8 +308,11 @@ ${projectUi(ui, icons)}
   \`text-muted-foreground\`, \`bg-muted\`, \`bg-primary\`,
   \`text-primary-foreground\`, \`bg-destructive\`.
 - **Nooit** \`bg-white\`, \`text-black\` of hex-kleuren in componenten — dan
-  breekt dark mode. Een nieuwe kleur wordt een token in \`globals.css\`, zowel
-  in \`:root\` als in de donkere varianten, plus een regel in \`@theme inline\`.
+  breekt dark mode. ${
+      ui
+          ? 'Een nieuwe kleur wordt een token in \`src/components/ui/tokens.css\`\n  (licht én \`[data-theme="dark"]\`) — liefst in de ProjectX-UI-repo — plus een\n  regel in \`@theme inline\` in \`globals.css\`.'
+          : 'Een nieuwe kleur wordt een token in \`globals.css\`, zowel\n  in \`:root\` als in de donkere varianten, plus een regel in \`@theme inline\`.'
+  }
 
 ---
 

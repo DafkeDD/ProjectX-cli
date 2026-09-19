@@ -122,7 +122,7 @@ export function writeRootFiles(projectDir: string, appName: string, dirs: { dir:
     if (!fs.existsSync(readme)) {
         const lines = [`# ${appName}`, '', 'Opgezet met [ProjectX-cli](https://github.com/DafkeDD/ProjectX-cli).', '']
         for (const { dir, run } of dirs) {
-            lines.push(`## ${dir}`, '', '```bash', `cd ${dir}`, 'cp .env.example .env', run, '```', '')
+            lines.push(`## ${dir}`, '', '```bash', `cd ${dir}`, 'npm install', 'cp .env.example .env', run, '```', '')
         }
         fs.writeFileSync(readme, lines.join('\n'), 'utf8')
     }
