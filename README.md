@@ -7,17 +7,23 @@ Interactieve CLI die stap voor stap een project opzet in de **huidige map**.
 ```bash
 mkdir mijn-project
 cd mijn-project
-npx github:DafkeDD/ProjectX-cli
+npx --allow-git=root github:DafkeDD/ProjectX-cli
 ```
+
+> **Waarom `--allow-git=root`?** Sinds npm 12 staat het ophalen van packages
+> uit git standaard uit (`EALLOWGIT`). Met `root` sta je dat enkel toe voor
+> het pakket dat je zelf opvraagt — niet voor eventuele git-dependencies
+> daaronder. Het is een vlag op dit ene commando, geen globale instelling.
 
 De CLI wordt **niet** globaal geïnstalleerd. `npx` haalt hem tijdelijk op vanaf
 GitHub, bouwt hem en draait hem in de map waar je staat. Een `npm i -g` wordt
-bewust geweigerd (`scripts/no-global.cjs`).
+bewust geweigerd (`scripts/no-global.cjs`, en bij het opstarten nog eens
+gecontroleerd in `src/utils/guard.ts`).
 
 Wil je een vaste versie? Gebruik een tag of branch:
 
 ```bash
-npx github:DafkeDD/ProjectX-cli#v0.1.0
+npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 ```
 
 ## De stappen
