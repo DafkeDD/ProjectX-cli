@@ -14,13 +14,155 @@ const BACKEND: Record<Locale, { title: string; online: string; offline: string }
     pl: { title: 'Backend', online: 'Online', offline: 'Niedostępny' }
 }
 
-const CHECK = `/** Vraagt GET /health op bij de backend (server-side, max. 1,5 s). */
+/**
+ * src/lib/api.ts — één plek om de backend aan te roepen: adres ervoor, cookies
+ * mee, JSON in/uit, en een fout van de backend wordt een ApiError met de
+ * (al vertaalde) melding.
+ */
+export const API_TS = `import { env } from './env'
+
+/**
+ * Fout van de backend. De backend stuurt { statusCode, error, message } en
+ * \`message\` is al vertaald in de taal van de gebruiker.
+ *
+ *   status  HTTP-status (0 = backend niet bereikbaar)
+ *   code    sleutel, bv. 'notFound', 'conflict' — of 'unreachable'
+ */
+export class ApiError extends Error {
+    constructor(
+        readonly status: number,
+        readonly code: string,
+        message: string
+    ) {
+        super(message)
+        this.name = 'ApiError'
+    }
+}
+
+type Query = Record<string, string | number | boolean | null | undefined>
+
+export interface ApiOptions extends Omit<RequestInit, 'method' | 'body'> {
+    /** Querystring: { page: 2 } -> ?page=2 (lege waarden worden overgeslagen). */
+    query?: Query
+    /** Maximale wachttijd in ms (standaard 10 s). */
+    timeoutMs?: number
+}
+
+/** Extra headers per verzoek — de server-variant stuurt zo de cookies mee. */
+type HeaderSource = () => HeadersInit | Promise<HeadersInit>
+
+function buildUrl(path: string, query?: Query): string {
+    const base = env.apiUrl.replace(/\\/+$/, '')
+    const url = \`\${base}\${path.startsWith('/') ? path : \`/\${path}\`}\`
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(query ?? {})) {
+        if (value !== undefined && value !== null) params.set(key, String(value))
+    }
+    const qs = params.toString()
+    return qs ? \`\${url}?\${qs}\` : url
+}
+
+export function createApi(extraHeaders?: HeaderSource) {
+    async function request<T>(method: string, path: string, body?: unknown, options: ApiOptions = {}): Promise<T> {
+        const { query, timeoutMs = 10_000, headers, signal, ...init } = options
+
+        const allHeaders = new Headers(extraHeaders ? await extraHeaders() : undefined)
+        new Headers(headers).forEach((value, key) => allHeaders.set(key, value))
+        allHeaders.set('Accept', 'application/json')
+
+        const isForm = typeof FormData !== 'undefined' && body instanceof FormData
+        if (body !== undefined && !isForm) allHeaders.set('Content-Type', 'application/json')
+
+        let response: Response
+        try {
+            response = await fetch(buildUrl(path, query), {
+                ...init,
+                method,
+                headers: allHeaders,
+                // Cookies mee (taal, later de login).
+                credentials: 'include',
+                body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
+                signal: signal ?? AbortSignal.timeout(timeoutMs)
+            })
+        } catch (error) {
+            throw new ApiError(0, 'unreachable', error instanceof Error ? error.message : String(error))
+        }
+
+        if (response.status === 204) return undefined as T
+
+        const data: unknown = response.headers.get('content-type')?.includes('application/json')
+            ? await response.json()
+            : await response.text()
+
+        if (!response.ok) {
+            const problem = (typeof data === 'object' && data !== null ? data : {}) as {
+                error?: string
+                message?: string
+            }
+            throw new ApiError(response.status, problem.error ?? 'internal', problem.message ?? response.statusText)
+        }
+        return data as T
+    }
+
+    return {
+        get: <T>(path: string, options?: ApiOptions) => request<T>('GET', path, undefined, options),
+        post: <T>(path: string, body?: unknown, options?: ApiOptions) => request<T>('POST', path, body, options),
+        put: <T>(path: string, body?: unknown, options?: ApiOptions) => request<T>('PUT', path, body, options),
+        patch: <T>(path: string, body?: unknown, options?: ApiOptions) => request<T>('PATCH', path, body, options),
+        delete: <T>(path: string, options?: ApiOptions) => request<T>('DELETE', path, undefined, options)
+    }
+}
+
+/**
+ * Voor client components ('use client'): de browser stuurt de cookies zelf mee.
+ *
+ *   const users = await api.get<User[]>('/users')
+ *   await api.post('/users', { name })
+ */
+export const api = createApi()
+`
+
+/**
+ * src/lib/api.server.ts — voor server components en server actions: daar zijn
+ * er geen browser-cookies, dus sturen we ze zelf door (taal, later login).
+ */
+export const API_SERVER_TS = `import { cookies } from 'next/headers'
+import { getLocale } from 'next-intl/server'
+import { createApi } from './api'
+
+export { ApiError, type ApiOptions } from './api'
+
+/**
+ * Voor server components en server actions (NIET in 'use client'-bestanden):
+ * stuurt de cookies van de bezoeker en diens taal mee naar de backend.
+ *
+ *   const health = await serverApi.get<Health>('/health')
+ */
+export const serverApi = createApi(async () => {
+    const cookieStore = await cookies()
+    let locale: string | undefined
+    try {
+        locale = await getLocale()
+    } catch {
+        // geen taalcontext: de backend kiest zelf
+    }
+    return {
+        ...(cookieStore.size > 0 ? { cookie: cookieStore.toString() } : {}),
+        ...(locale ? { 'accept-language': locale } : {})
+    }
+})
+`
+
+const CHECK = `interface Health {
+    status: string
+    version: string
+}
+
+/** Vraagt GET /health op bij de backend (server-side, max. 1,5 s). */
 async function check(): Promise<{ ok: boolean; version?: string }> {
     try {
-        const response = await fetch(\`\${env.apiUrl}/health\`, { cache: 'no-store', signal: AbortSignal.timeout(1500) })
-        if (!response.ok) return { ok: false }
-        const data = (await response.json()) as { version?: string }
-        return { ok: true, version: data.version }
+        const health = await serverApi.get<Health>('/health', { cache: 'no-store', timeoutMs: 1500 })
+        return { ok: true, version: health.version }
     } catch {
         return { ok: false }
     }
@@ -30,7 +172,7 @@ function component(ui: boolean): string {
     if (ui) {
         return `import { getTranslations } from 'next-intl/server'
 import { Badge } from '@/components/ui'
-import { env } from '@/lib/env'
+import { serverApi } from '@/lib/api.server'
 
 ${CHECK}
 
@@ -49,7 +191,7 @@ export default async function BackendStatus() {
 `
     }
     return `import { getTranslations } from 'next-intl/server'
-import { env } from '@/lib/env'
+import { serverApi } from '@/lib/api.server'
 
 ${CHECK}
 
@@ -74,6 +216,9 @@ export default async function BackendStatus() {
  * Past de (nog niet geformatteerde) page.tsx aan en vult messages aan.
  */
 export function setupBackendStatus(target: string, locales: Locale[], ui: boolean): void {
+    fs.mkdirSync(path.join(target, 'src', 'lib'), { recursive: true })
+    fs.writeFileSync(path.join(target, 'src', 'lib', 'api.ts'), API_TS, 'utf8')
+    fs.writeFileSync(path.join(target, 'src', 'lib', 'api.server.ts'), API_SERVER_TS, 'utf8')
     fs.writeFileSync(path.join(target, 'src', 'components', 'BackendStatus.tsx'), component(ui), 'utf8')
 
     const pageFile = path.join(target, 'src', 'app', '[locale]', 'page.tsx')
@@ -129,9 +274,14 @@ ${plainMarker}`
 
 const API_RULES = `## Backend (API)
 
-- Adres: \`env.apiUrl\` (\`NEXT_PUBLIC_API_URL\` in \`.env\`). Nooit een URL als \`http://localhost:4000\` hard coderen.
-- Vanuit de browser altijd met \`credentials: 'include'\`, zodat de taalcookie (en later de login) meegaat.
-- Een fout van de API is al vertaald: \`{ statusCode, error, message }\` — toon \`message\`, of vertaal zelf op \`error\`.
+- **Altijd via de API-helper**, nooit losse \`fetch\` naar de backend:
+  - client components: \`import { api, ApiError } from '@/lib/api'\`
+  - server components / server actions: \`import { serverApi, ApiError } from '@/lib/api.server'\` (stuurt de cookies en
+    de taal van de bezoeker door)
+  - \`await api.get<User[]>('/users', { query: { page: 2 } })\`, \`api.post('/users', body)\`, \`put\`, \`patch\`, \`delete\`
+- Het adres komt uit \`env.apiUrl\` (\`NEXT_PUBLIC_API_URL\`). Nooit \`http://localhost:4000\` hard coderen.
+- Een fout is een \`ApiError\` met \`status\`, \`code\` (bv. \`notFound\`) en een **al vertaalde** \`message\` — toon die.
+  \`code === 'unreachable'\` (status 0) = backend niet bereikbaar: toon dan een eigen vertaalde tekst.
 - \`GET /health\` gebruikt de startpagina (\`src/components/BackendStatus.tsx\`).
 `
 

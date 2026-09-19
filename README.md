@@ -189,6 +189,17 @@ Altijd, bij beide:
 Met een frontend erbij:
 
 - frontend `.env` krijgt `NEXT_PUBLIC_API_URL`, in code `env.apiUrl`
+- **API-helper** — `src/lib/api.ts` (client components) en `src/lib/api.server.ts` (server components/actions, stuurt de
+  cookies en de taal van de bezoeker door):
+
+    ```ts
+    const users = await api.get<User[]>('/users', { query: { page: 2 } })
+    await api.post('/users', { name }) // ook put, patch, delete
+    ```
+
+    Adres uit `env.apiUrl`, cookies mee, JSON in/uit, time-out (10 s). Een fout wordt een `ApiError` met `status`,
+    `code` (bv. `notFound`, of `unreachable` als de backend niet draait) en de al vertaalde `message`.
+
 - **demo op de startpagina**: blok "Backend" met _Online · v0.0.1_ of _Niet bereikbaar_ (ProjectX-UI `Badge`)
 - `.vscode` in de projectmap kent beide apps (ESLint-mappen, oxc-extensie bij NestJS)
 
@@ -210,7 +221,7 @@ Na de installatie zet de CLI in de projectmap een `.gitignore` en `README.md`, e
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
-(`projectx-cli v0.13.0`). Klopt die niet, maak dan de npx-cache leeg:
+(`projectx-cli v0.14.0`). Klopt die niet, maak dan de npx-cache leeg:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"

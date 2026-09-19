@@ -291,8 +291,9 @@ import { routing } from './i18n/routing'
 export default createMiddleware(routing)
 
 export const config = {
-    // Alles behalve api, trpc, _next, _vercel en bestanden met een extensie.
-    matcher: '/((?!api|trpc|_next|_vercel|.*\\\\..*).*)'
+    // Alles behalve /api/..., /trpc/..., _next, _vercel en bestanden met een extensie.
+    // Let op de (?:/|$): zonder die grens zou ook /apitest of /api-docs overgeslagen worden.
+    matcher: '/((?!(?:api|trpc)(?:/|$)|_next|_vercel|.*\\\\..*).*)'
 }
 `
     )
