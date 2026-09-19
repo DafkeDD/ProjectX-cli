@@ -13,6 +13,7 @@ import { setupEslintPrettier, setupVsCode } from './editor.js'
 import { setupEnv, type AppConfig } from './env.js'
 import { installProjectxUi, UI_COMPONENTS_DIR, type UiChoice, type UiResult } from './ui.js'
 import { writeUiTemplates } from './ui-templates.js'
+import { setupNotFound } from './notfound.js'
 import { setupPrettier, formatAll } from '../utils/prettier.js'
 import type { PackageManager } from '../types.js'
 
@@ -123,6 +124,7 @@ export async function scaffoldFrontend(
             setupNextIntl(target, i18n, withUi)
             // Met ProjectX-UI: startpagina, taalkiezer en themaknop ENKEL met UI-componenten.
             if (withUi) writeUiTemplates(target)
+            setupNotFound(target, i18n.locales, withUi)
             setupIcons(target, icons)
             await runQuiet(pm, ['install', 'next-intl@latest', ...iconPackages(icons)], target)
 

@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Locale } from './i18n.js'
-import { usesReactIcons, type IconLibrary } from './icons.js'
+import { usesFontAwesome, usesReactIcons, type IconLibrary } from './icons.js'
 
 /**
  * VASTE REGEL: elke frontend heeft light/dark mode (zoals starter-cli).
@@ -421,17 +421,23 @@ export function useTheme(): ThemeContextValue {
 `
 
 function themeToggle(lib: IconLibrary): string {
-    // React Icons als die er is, anders Font Awesome.
-    const iconImports = usesReactIcons(lib)
-        ? "import { MdComputer, MdDarkMode, MdLightMode } from 'react-icons/md'"
-        : "import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'\nimport { faDesktop, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'"
-    const icons = usesReactIcons(lib)
-        ? `const ICONS: Record<Theme, React.ReactNode> = {
+    // React Icons als die er is, anders Font Awesome, anders geen icoon
+    // (enkel mogelijk als ProjectX-UI mislukte; met UI komt ui-templates.ts).
+    const none = !usesReactIcons(lib) && !usesFontAwesome(lib)
+    const iconImports = none
+        ? ''
+        : usesReactIcons(lib)
+          ? "import { MdComputer, MdDarkMode, MdLightMode } from 'react-icons/md'"
+          : "import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'\nimport { faDesktop, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'"
+    const icons = none
+        ? ''
+        : usesReactIcons(lib)
+          ? `const ICONS: Record<Theme, React.ReactNode> = {
     light: <MdLightMode size={16} />,
     dark: <MdDarkMode size={16} />,
     system: <MdComputer size={16} />
 }`
-        : `const ICONS: Record<Theme, React.ReactNode> = {
+          : `const ICONS: Record<Theme, React.ReactNode> = {
     light: <FontAwesomeIcon icon={faSun} />,
     dark: <FontAwesomeIcon icon={faMoon} />,
     system: <FontAwesomeIcon icon={faDesktop} />
@@ -440,10 +446,8 @@ function themeToggle(lib: IconLibrary): string {
     return `'use client'
 
 import { useTranslations } from 'next-intl'
-${iconImports}
-import { useTheme } from './ThemeProvider'
-import type { Theme } from './theme'
-
+${none ? '' : iconImports + '\n'}import { useTheme } from './ThemeProvider'
+${none ? '' : "import type { Theme } from './theme'\n"}
 ${icons}
 
 /**
@@ -463,8 +467,7 @@ export default function ThemeToggle() {
             title={t('toggle')}
             className='border-border hover:bg-muted flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors'
         >
-            {ICONS[theme]}
-            <span>{t(theme)}</span>
+${none ? '' : '            {ICONS[theme]}\n'}            <span>{t(theme)}</span>
         </button>
     )
 }

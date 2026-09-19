@@ -39,8 +39,9 @@ async function main(): Promise<void> {
     const frontend = await askFrontend()
     // Talen enkel als er een frontend komt; next-intl zelf is geen vraag.
     const i18n: I18nConfig | null = frontend === 'nextjs' ? await askI18n() : null
-    const icons: IconLibrary | null = frontend === 'nextjs' ? await askIcons() : null
+    // Eerst ProjectX-UI: die heeft een eigen icon set, dus daarna is het een vraag naar EXTRA iconen.
     const ui: UiChoice | null = frontend === 'nextjs' ? await askProjectxUi() : null
+    const icons: IconLibrary | null = frontend === 'nextjs' ? await askIcons(ui !== null) : null
     const port: number | null = frontend === 'nextjs' ? await askPort() : null
     // Volgende stappen (backend, ...) komen hier.
 

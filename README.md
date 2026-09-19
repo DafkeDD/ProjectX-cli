@@ -66,13 +66,20 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
     - `useTheme()` geeft `theme`, `resolvedTheme`, `setTheme()` en `cycleTheme()`
     - `ThemeToggle` wisselt licht → donker → systeem, met iconen uit `react-icons` en vertaalde labels
 
-- **Iconen — vraag: welke?**
+- **Vertaalde 404-pagina** — elke onbekende URL (`[locale]/[...rest]`) toont `not-found.tsx` in de taal van de bezoeker,
+  met een knop terug naar de startpagina. Met ProjectX-UI: `EmptyState` + `Button` + `Icon`; zonder: Tailwind + tokens.
+  Teksten in `messages/<taal>.json` onder `NotFound`. Ook een ontbrekend bestand (`/logo.png`) krijgt die pagina, in de
+  taal uit de cookie.
+- **Iconen — vraag: welke?** (komt ná de ProjectX-UI-vraag)
 
     | Keuze        | Packages (altijd `@latest`)                                                                                                         |
     | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
     | React Icons  | `react-icons`                                                                                                                       |
     | Font Awesome | `@fortawesome/react-fontawesome`, `fontawesome-svg-core`, `free-solid-svg-icons`, `free-regular-svg-icons`, `free-brands-svg-icons` |
     | Beide        | alles hierboven                                                                                                                     |
+
+    Met ProjectX-UI wordt het _Wil je naast de ProjectX-UI-iconen nog extra iconen?_ — standaard **Nee** (enkel `Icon`
+    uit ProjectX-UI); de AI-regels zeggen dan: eerst `Icon`, pas daarna de extra library.
 
     Bij Font Awesome zet de CLI in `src/app/layout.tsx` de CSS-import en `config.autoAddCss = false` (de aanbevolen
     Next.js-setup, anders flitsen de iconen groot bij het laden). De `ThemeToggle` gebruikt React Icons als die er zijn,
@@ -111,8 +118,8 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
     1. _Wil je ProjectX-UI installeren?_
     2. _Welke componenten?_ — **Alles** of **Zelf kiezen**
     3. bij _Zelf kiezen_: aanvinken per categorie (Basis, Formulieren, Overlays, ...). `card`, `badge`, `segmented`,
-       `section-header`, `separator` en `icon` staan aan en komen er altijd bij — de startpagina gebruikt ze.
-       Afhankelijkheden (bv. `button` → `spinner`) komen automatisch mee.
+       `section-header`, `separator`, `icon`, `empty-state` en `button` staan aan en komen er altijd bij — de
+       startpagina gebruikt ze. Afhankelijkheden (bv. `button` → `spinner`) komen automatisch mee.
     - **Met ProjectX-UI gebruikt de app ENKEL ProjectX-UI-componenten**: de startpagina is een `Card` met `Badge`,
       `SectionHeader` en `Separator`; de taalkiezer en de themaknop zijn `Segmented` (+ `Icon`). Tailwind enkel voor
       layout. Dat staat ook zo in de AI-regels.
@@ -172,7 +179,7 @@ Na de installatie zet de CLI in de projectmap een `.gitignore` en `README.md`, e
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
-(`projectx-cli v0.11.1`). Klopt die niet, maak dan de npx-cache leeg:
+(`projectx-cli v0.12.0`). Klopt die niet, maak dan de npx-cache leeg:
 
 ```powershell
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\npm-cache\_npx"
@@ -202,6 +209,7 @@ src/
 │  ├─ env.ts           app-naam + poort -> .env, src/lib/env.ts, scripts/next.mjs
 │  ├─ ui.ts            ProjectX-UI: vragen, ophalen, npm run ui
 │  ├─ ui-templates.ts  startpagina/taalkiezer/themaknop met ProjectX-UI
+│  ├─ notfound.ts      vertaalde 404
 │  └─ github.ts        pushen naar GitHub of de commando's tonen
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```

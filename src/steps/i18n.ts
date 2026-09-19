@@ -241,12 +241,15 @@ export const { Link, redirect, usePathname, useRouter, getPathname } = createNav
 
     write(
         path.join(src, 'i18n', 'request.ts'),
-        `import { getRequestConfig } from 'next-intl/server'
+        `import { cookies } from 'next/headers'
+import { getRequestConfig } from 'next-intl/server'
 import { hasLocale } from 'next-intl'
 import { routing } from './routing'
 
 export default getRequestConfig(async ({ requestLocale }) => {
-    const requested = await requestLocale
+    // Normaal zet de proxy de taal. Buiten de proxy (bv. de 404 van een
+    // ontbrekend bestand) valt hij terug op de taalcookie, dan de standaardtaal.
+    const requested = (await requestLocale) ?? (await cookies()).get('NEXT_LOCALE')?.value
     const locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale
 
     return {

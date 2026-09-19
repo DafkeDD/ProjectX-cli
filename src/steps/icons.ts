@@ -3,19 +3,26 @@ import path from 'node:path'
 import * as p from '@clack/prompts'
 import { orCancel } from '../utils/prompt.js'
 
-/** Welke icon-library (of beide) er in de frontend komt. */
-export type IconLibrary = 'react-icons' | 'fontawesome' | 'both'
+/**
+ * Welke icon-library (of beide) er in de frontend komt.
+ * 'none' kan enkel met ProjectX-UI: dan komen alle iconen uit zijn eigen set.
+ */
+export type IconLibrary = 'react-icons' | 'fontawesome' | 'both' | 'none'
 
-export const usesReactIcons = (lib: IconLibrary): boolean => lib !== 'fontawesome'
-export const usesFontAwesome = (lib: IconLibrary): boolean => lib !== 'react-icons'
+export const usesReactIcons = (lib: IconLibrary): boolean => lib === 'react-icons' || lib === 'both'
+export const usesFontAwesome = (lib: IconLibrary): boolean => lib === 'fontawesome' || lib === 'both'
 
-/** Vraag: welke iconen? */
-export async function askIcons(): Promise<IconLibrary> {
+/**
+ * Vraag: welke iconen? Met ProjectX-UI heeft de app al een eigen icon set
+ * (Icon), dus dan is het een vraag naar EXTRA iconen — standaard geen.
+ */
+export async function askIcons(withUi: boolean): Promise<IconLibrary> {
     return orCancel(
         await p.select<IconLibrary>({
-            message: 'Welke iconen wil je?',
-            initialValue: 'react-icons',
+            message: withUi ? 'Wil je naast de ProjectX-UI-iconen nog extra iconen?' : 'Welke iconen wil je?',
+            initialValue: withUi ? 'none' : 'react-icons',
             options: [
+                ...(withUi ? [{ value: 'none' as const, label: 'Nee', hint: 'enkel Icon uit ProjectX-UI' }] : []),
                 {
                     value: 'react-icons',
                     label: 'React Icons',
@@ -26,13 +33,14 @@ export async function askIcons(): Promise<IconLibrary> {
                     label: 'Font Awesome',
                     hint: 'officiële React-component · solid, regular en brands (gratis)'
                 },
-                { value: 'both', label: 'Beide' }
+                { value: 'both', label: withUi ? 'React Icons + Font Awesome' : 'Beide' }
             ]
         })
     )
 }
 
 export function iconsLabel(lib: IconLibrary): string {
+    if (lib === 'none') return 'enkel ProjectX-UI'
     if (lib === 'react-icons') return 'React Icons'
     if (lib === 'fontawesome') return 'Font Awesome'
     return 'React Icons + Font Awesome'

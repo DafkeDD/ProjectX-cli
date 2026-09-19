@@ -37,11 +37,20 @@ interface RegistryComponent {
 }
 
 /**
- * Componenten die de startpagina, de taalkiezer en de themaknop gebruiken.
+ * Componenten die de startpagina, de 404, de taalkiezer en de themaknop gebruiken.
  * Bij "zelf kiezen" komen die er altijd bij — de app gebruikt ENKEL
  * ProjectX-UI-componenten.
  */
-export const REQUIRED_COMPONENTS = ['card', 'badge', 'segmented', 'section-header', 'separator', 'icon']
+export const REQUIRED_COMPONENTS = [
+    'card',
+    'badge',
+    'segmented',
+    'section-header',
+    'separator',
+    'icon',
+    'empty-state',
+    'button'
+]
 
 async function fetchRegistry(): Promise<RegistryComponent[]> {
     const response = await fetch(UI_REGISTRY)
@@ -97,7 +106,7 @@ export async function askProjectxUi(): Promise<UiChoice | null> {
         ;(groups[c.category] ??= []).push({
             value: c.name,
             label: c.title,
-            hint: required ? 'nodig voor de startpagina' : c.description
+            hint: required ? 'nodig voor de startpagina / 404' : c.description
         })
     }
 
@@ -112,7 +121,7 @@ export async function askProjectxUi(): Promise<UiChoice | null> {
 
     const added = REQUIRED_COMPONENTS.filter(name => !picked.includes(name))
     if (added.length > 0) {
-        p.log.info(`Toegevoegd omdat de startpagina ze gebruikt: ${added.join(', ')}`)
+        p.log.info(`Toegevoegd omdat de startpagina of de 404 ze gebruikt: ${added.join(', ')}`)
     }
     const all = new Set([...picked, ...REQUIRED_COMPONENTS])
     return { all: false, components: components.map(c => c.name).filter(name => all.has(name)) }

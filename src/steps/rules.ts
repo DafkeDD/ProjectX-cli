@@ -18,7 +18,16 @@ const END = '<!-- END:projectx-rules -->'
 
 const code = (s: string) => `\`${s}\``
 
+/** Wat je gebruikt als ProjectX-UI een icoon niet heeft. */
+function extraIcons(icons: IconLibrary): string {
+    if (usesReactIcons(icons) && usesFontAwesome(icons)) return 'pas \`react-icons\` of Font Awesome'
+    if (usesReactIcons(icons)) return 'pas \`react-icons\`'
+    if (usesFontAwesome(icons)) return 'pas Font Awesome'
+    return 'voeg je het toe aan de icon set in de ProjectX-UI-repo (er is bewust geen extra icon library)'
+}
+
 function iconRule(icons: IconLibrary): string {
+    if (icons === 'none') return 'Er is geen icon library geïnstalleerd; voeg er pas een toe na overleg.'
     const libs: string[] = []
     if (usesReactIcons(icons)) libs.push(code('react-icons'))
     if (usesFontAwesome(icons)) libs.push(`Font Awesome (${code('@fortawesome/react-fontawesome')})`)
@@ -38,7 +47,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHouse } from '@fortawesome/free-solid-svg-icons'
 <FontAwesomeIcon icon={faHouse} />`)
     }
-    return '```tsx\n' + parts.join('\n\n') + '\n```'
+    return parts.length ? '```tsx\n' + parts.join('\n\n') + '\n```' : ''
 }
 
 function agentsUi(ui: boolean, icons: IconLibrary): string {
@@ -63,7 +72,7 @@ ${iconRule(icons)}`
 - CSS-klassen van de library beginnen met \`pxui-\`; hergebruik die niet in eigen code, gebruik Tailwind + tokens.
 
 Iconen: **eerst** \`Icon\` uit ProjectX-UI (\`<Icon name='home' />\`). Ontbreekt een icoon daar (bv. merklogo's),
-dan pas ${usesReactIcons(icons) && usesFontAwesome(icons) ? '\`react-icons\` of Font Awesome' : usesReactIcons(icons) ? '\`react-icons\`' : 'Font Awesome'}. Nooit \`lucide-react\`.`
+dan ${extraIcons(icons)}. Nooit \`lucide-react\`.`
 }
 
 function projectUi(ui: boolean, icons: IconLibrary): string {
@@ -138,8 +147,8 @@ volledig zelf gebouwd.
    wijzen naar de ProjectX-UI-tokens — ze blijven dus bruikbaar én passen
    bij de library.
 6. **Iconen: eerst \`Icon\` uit ProjectX-UI** (\`<Icon name='home' />\`, 24×24,
-   volgt de tekstkleur). Ontbreekt een icoon daar (bv. merklogo's), dan pas
-   ${usesReactIcons(icons) && usesFontAwesome(icons) ? '\`react-icons\` of Font Awesome' : usesReactIcons(icons) ? '\`react-icons\`' : 'Font Awesome'}. Nooit \`lucide-react\`.
+   volgt de tekstkleur). Ontbreekt een icoon daar (bv. merklogo's), dan
+   ${extraIcons(icons)}. Nooit \`lucide-react\`.
 
 \`\`\`tsx
 import { Badge, Button, Card, CardHeader, CardTitle } from '@/components/ui'
