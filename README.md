@@ -30,7 +30,7 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 
 | # | Stap     | Keuzes                           | Resultaat     |
 |---|----------|----------------------------------|---------------|
-| 1 | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark, of geen | `./frontend`  |
+| 1 | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark + iconen (keuze), of geen | `./frontend`  |
 | 2 | Backend  | _volgt_                          |               |
 
 ### 1. Frontend
@@ -74,6 +74,30 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
   - `ThemeToggle` wisselt licht → donker → systeem, met iconen uit
     `react-icons` en vertaalde labels
 
+- **Iconen — vraag: welke?**
+
+  | Keuze        | Packages (altijd `@latest`)                                  |
+  |--------------|--------------------------------------------------------------|
+  | React Icons  | `react-icons`                                                |
+  | Font Awesome | `@fortawesome/react-fontawesome`, `fontawesome-svg-core`, `free-solid-svg-icons`, `free-regular-svg-icons`, `free-brands-svg-icons` |
+  | Beide        | alles hierboven                                              |
+
+  Bij Font Awesome zet de CLI in `src/app/layout.tsx` de CSS-import en
+  `config.autoAddCss = false` (de aanbevolen Next.js-setup, anders flitsen de
+  iconen groot bij het laden). De `ThemeToggle` gebruikt React Icons als die
+  er zijn, anders Font Awesome.
+
+  ```tsx
+  // React Icons
+  import { MdHome } from 'react-icons/md'
+  <MdHome size={20} />
+
+  // Font Awesome
+  import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+  import { faHouse } from '@fortawesome/free-solid-svg-icons'
+  <FontAwesomeIcon icon={faHouse} />
+  ```
+
 ```
 frontend/
 ├─ messages/            één .json per gekozen taal
@@ -93,7 +117,7 @@ Bestaat `./frontend` al en is hij niet leeg, dan stopt de CLI voor hij iets doet
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit
-op. Je ziet de versie bovenaan (`projectx-cli v0.3.0`). Klopt die niet, maak
+op. Je ziet de versie bovenaan (`projectx-cli v0.4.0`). Klopt die niet, maak
 dan de npx-cache leeg:
 
 ```powershell
@@ -116,7 +140,8 @@ src/
 ├─ steps/
 │  ├─ frontend.ts      askFrontend / checkFrontend / scaffoldFrontend
 │  ├─ i18n.ts          next-intl: talen, bestanden, vertalingen
-│  └─ theme.ts         light/dark mode + design tokens
+│  ├─ theme.ts         light/dark mode + design tokens
+│  └─ icons.ts         React Icons / Font Awesome / beide
 └─ utils/              exec, progress-bar, prompt-helpers
 ```
 

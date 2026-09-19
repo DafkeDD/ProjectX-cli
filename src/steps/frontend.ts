@@ -7,6 +7,7 @@ import { withProgress } from "../utils/progress.js";
 import { orCancel } from "../utils/prompt.js";
 import { setupNextIntl, type I18nConfig } from "./i18n.js";
 import { setupTheme } from "./theme.js";
+import { iconPackages, setupIcons, type IconLibrary } from "./icons.js";
 import type { PackageManager } from "../types.js";
 
 /** Submap binnen het project voor de frontend. */
@@ -24,7 +25,7 @@ export async function askFrontend(): Promise<Frontend> {
         {
           value: "nextjs",
           label: "Next.js + Tailwind CSS",
-          hint: "laatste versies · TypeScript · ESLint · src/ · Turbopack · next-intl · light/dark",
+          hint: "laatste versies · TypeScript · ESLint · src/ · Turbopack · next-intl · light/dark · iconen",
         },
         { value: "none", label: "Geen frontend" },
       ],
@@ -58,6 +59,7 @@ export async function scaffoldFrontend(
   projectDir: string,
   pm: PackageManager,
   i18n: I18nConfig,
+  icons: IconLibrary,
 ): Promise<void> {
   if (frontend === "none") {
     p.log.info("Geen frontend gekozen — overgeslagen.");
@@ -93,10 +95,11 @@ export async function scaffoldFrontend(
       update("Tailwind CSS naar de laatste versie");
       await runQuiet(pm, ["install", "--save-dev", "tailwindcss@latest", "@tailwindcss/postcss@latest"], target);
 
-      update("next-intl + light/dark mode opzetten");
-      setupTheme(target);
+      update("next-intl + light/dark mode + iconen opzetten");
+      setupTheme(target, icons);
       setupNextIntl(target, i18n);
-      await runQuiet(pm, ["install", "next-intl@latest", "react-icons@latest"], target);
+      setupIcons(target, icons);
+      await runQuiet(pm, ["install", "next-intl@latest", ...iconPackages(icons)], target);
 
       update("Turbopack controleren");
       ensureTurbopack(target);

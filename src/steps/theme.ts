@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Locale } from "./i18n.js";
+import { usesReactIcons, type IconLibrary } from "./icons.js";
 
 /**
  * VASTE REGEL: elke frontend heeft light/dark mode (zoals starter-cli).
@@ -305,18 +306,31 @@ export function useTheme(): ThemeContextValue {
 }
 `;
 
-const THEME_TOGGLE = `'use client'
+function themeToggle(lib: IconLibrary): string {
+  // React Icons als die er is, anders Font Awesome.
+  const iconImports = usesReactIcons(lib)
+    ? "import { MdComputer, MdDarkMode, MdLightMode } from 'react-icons/md'"
+    : "import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'\nimport { faDesktop, faMoon, faSun } from '@fortawesome/free-solid-svg-icons'";
+  const icons = usesReactIcons(lib)
+    ? `const ICONS: Record<Theme, React.ReactNode> = {
+    light: <MdLightMode size={16} />,
+    dark: <MdDarkMode size={16} />,
+    system: <MdComputer size={16} />
+}`
+    : `const ICONS: Record<Theme, React.ReactNode> = {
+    light: <FontAwesomeIcon icon={faSun} />,
+    dark: <FontAwesomeIcon icon={faMoon} />,
+    system: <FontAwesomeIcon icon={faDesktop} />
+}`;
+
+  return `'use client'
 
 import { useTranslations } from 'next-intl'
-import { MdComputer, MdDarkMode, MdLightMode } from 'react-icons/md'
+${iconImports}
 import { useTheme } from './ThemeProvider'
 import type { Theme } from './theme'
 
-const ICONS: Record<Theme, React.ComponentType<{ size?: number }>> = {
-    light: MdLightMode,
-    dark: MdDarkMode,
-    system: MdComputer
-}
+${icons}
 
 /**
  * Knop die wisselt tussen light, dark en system. Zelf gebouwd — geen
@@ -326,7 +340,6 @@ const ICONS: Record<Theme, React.ComponentType<{ size?: number }>> = {
 export default function ThemeToggle() {
     const t = useTranslations('Theme')
     const { theme, cycleTheme } = useTheme()
-    const Icon = ICONS[theme]
 
     return (
         <button
@@ -336,15 +349,16 @@ export default function ThemeToggle() {
             title={t('toggle')}
             className='border-border hover:bg-muted flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors'
         >
-            <Icon size={16} />
+            {ICONS[theme]}
             <span>{t(theme)}</span>
         </button>
     )
 }
 `;
+}
 
 /** Schrijft globals.css en de thema-bestanden. De layout zet i18n.ts. */
-export function setupTheme(target: string): void {
+export function setupTheme(target: string, icons: IconLibrary): void {
   const src = path.join(target, "src");
   const dir = path.join(src, "components", "theme");
 
@@ -352,5 +366,5 @@ export function setupTheme(target: string): void {
   write(path.join(dir, "theme.ts"), THEME_LIB);
   write(path.join(dir, "actions.ts"), THEME_ACTIONS);
   write(path.join(dir, "ThemeProvider.tsx"), THEME_PROVIDER);
-  write(path.join(dir, "ThemeToggle.tsx"), THEME_TOGGLE);
+  write(path.join(dir, "ThemeToggle.tsx"), themeToggle(icons));
 }

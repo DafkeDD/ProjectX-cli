@@ -5,6 +5,7 @@ import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { askFrontend, checkFrontend, frontendLabel, scaffoldFrontend, FRONTEND_DIR } from "./steps/frontend.js";
 import { askI18n, i18nLabel, type I18nConfig } from "./steps/i18n.js";
+import { askIcons, iconsLabel, type IconLibrary } from "./steps/icons.js";
 import { orCancel } from "./utils/prompt.js";
 import { isGlobalInstall } from "./utils/guard.js";
 import type { PackageManager } from "./types.js";
@@ -36,6 +37,7 @@ async function main(): Promise<void> {
   const frontend = await askFrontend();
   // Talen enkel als er een frontend komt; next-intl zelf is geen vraag.
   const i18n: I18nConfig | null = frontend === "nextjs" ? await askI18n() : null;
+  const icons: IconLibrary | null = frontend === "nextjs" ? await askIcons() : null;
   // Volgende stappen (backend, ...) komen hier.
 
   // ---- Controles ---------------------------------------------------------
@@ -51,6 +53,7 @@ async function main(): Promise<void> {
       `${pc.dim("Locatie ")}  ${pc.cyan(projectDir)}`,
       `${pc.dim("Frontend")}  ${pc.cyan(frontendLabel(frontend))}`,
       ...(i18n ? [`${pc.dim("Talen   ")}  ${pc.cyan(i18nLabel(i18n))}`] : []),
+      ...(icons ? [`${pc.dim("Iconen  ")}  ${pc.cyan(iconsLabel(icons))}`] : []),
       `${pc.dim("Manager ")}  ${pc.cyan(PACKAGE_MANAGER)}`,
     ].join("\n"),
     "Overzicht",
@@ -63,7 +66,7 @@ async function main(): Promise<void> {
   }
 
   // ---- Installeren -------------------------------------------------------
-  if (i18n) await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, i18n);
+  if (i18n && icons) await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, i18n, icons);
 
   // ---- Volgende stappen --------------------------------------------------
   const steps: string[] = [];
