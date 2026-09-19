@@ -87,7 +87,9 @@ export const env = {
         api
             ? `,
     /** Adres van de backend (NEXT_PUBLIC_API_URL). */
-    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'`
+    apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
+    /** Adres van de backend vanaf de server (API_INTERNAL_URL, bv. in Docker) — anders apiUrl. */
+    serverApiUrl: process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'`
             : ''
     }
 } as const

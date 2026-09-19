@@ -51,8 +51,8 @@ export interface ApiOptions extends Omit<RequestInit, 'method' | 'body'> {
 /** Extra headers per verzoek — de server-variant stuurt zo de cookies mee. */
 type HeaderSource = () => HeadersInit | Promise<HeadersInit>
 
-function buildUrl(path: string, query?: Query): string {
-    const base = env.apiUrl.replace(/\\/+$/, '')
+function buildUrl(baseUrl: string, path: string, query?: Query): string {
+    const base = baseUrl.replace(/\\/+$/, '')
     const url = \`\${base}\${path.startsWith('/') ? path : \`/\${path}\`}\`
     const params = new URLSearchParams()
     for (const [key, value] of Object.entries(query ?? {})) {
@@ -62,7 +62,7 @@ function buildUrl(path: string, query?: Query): string {
     return qs ? \`\${url}?\${qs}\` : url
 }
 
-export function createApi(extraHeaders?: HeaderSource) {
+export function createApi(extraHeaders?: HeaderSource, baseUrl: string = env.apiUrl) {
     async function request<T>(method: string, path: string, body?: unknown, options: ApiOptions = {}): Promise<T> {
         const { query, timeoutMs = 10_000, headers, signal, ...init } = options
 
@@ -75,7 +75,7 @@ export function createApi(extraHeaders?: HeaderSource) {
 
         let response: Response
         try {
-            response = await fetch(buildUrl(path, query), {
+            response = await fetch(buildUrl(baseUrl, path, query), {
                 ...init,
                 method,
                 headers: allHeaders,
@@ -129,6 +129,7 @@ export const api = createApi()
 export const API_SERVER_TS = `import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import { createApi } from './api'
+import { env } from './env'
 
 export { ApiError, type ApiOptions } from './api'
 
@@ -150,7 +151,8 @@ export const serverApi = createApi(async () => {
         ...(cookieStore.size > 0 ? { cookie: cookieStore.toString() } : {}),
         ...(locale ? { 'accept-language': locale } : {})
     }
-})
+    // Op de server: het interne adres (in Docker http://backend:<poort>).
+}, env.serverApiUrl)
 `
 
 const CHECK = `interface Health {

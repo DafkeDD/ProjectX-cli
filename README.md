@@ -30,6 +30,7 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 | --- | -------- | -------------------------------------------------------------------------------------------- | -------------------------------- |
 | 1   | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark + iconen (keuze), of geen | `./frontend`                     |
 | 2   | Backend  | NestJS (standaard) of Node.js + Express 5, of geen                                           | `./backend`                      |
+| 3   | Database | PostgreSQL (multitenant) in Docker of lokaal, of geen — enkel met een backend                | `./backend/src/db`               |
 | ∞   | GitHub   | pushen? + projectnaam + privé/openbaar                                                       | repo op GitHub, of de commando's |
 
 ### 1. Frontend
@@ -203,6 +204,37 @@ Met een frontend erbij:
 - **demo op de startpagina**: blok "Backend" met _Online · v0.0.1_ of _Niet bereikbaar_ (ProjectX-UI `Badge`)
 - `.vscode` in de projectmap kent beide apps (ESLint-mappen, oxc-extensie bij NestJS)
 
+### 3. Database
+
+Enkel met een backend. Vragen: _Welke database?_ — **PostgreSQL** · geen — _Waar draait PostgreSQL?_ — **Docker** ·
+**Lokaal** — en de _sleutel van de app_ (standaard afgeleid van de app-naam, 2–20 tekens `a-z0-9_`): het voorvoegsel van
+alle databases en rollen.
+
+Multitenant: één **control-database** per app en één **database per tenant** (organisatie). Geen ORM: kale `pg`, eigen
+migratie-runner.
+
+| Wat                      | Naam                          |
+| ------------------------ | ----------------------------- |
+| Control-database         | `<sleutel>_control`           |
+| Rol van de app           | `<sleutel>_app`               |
+| Rol die tenants aanmaakt | `<sleutel>_provisioner`       |
+| Database + rol / tenant  | `<sleutel>_t_<tenantKey>`     |
+| Docker-container         | `projectx-postgres` (gedeeld) |
+
+- **Docker** — één gedeelde container `projectx-postgres` (postgres 18, netwerk `projectx`, volume `projectx-pgdata`,
+  enkel op `127.0.0.1`) voor al je projecten. De beheerder staat in `~/.projectx/postgres.json`, nooit in een project.
+  Extra: `docker-compose.yml` in de projectmap (frontend + backend in Docker, zonder geheimen) en `npm run db:up/down`.
+- **Lokaal** — een bestaande PostgreSQL; de CLI vraagt één keer een superuser (enkel om de rollen en de control-database
+  aan te maken, hij komt niet in `.env`) en test de verbinding.
+- De CLI maakt de rollen en `<sleutel>_control` aan **vóór** hij iets installeert, schrijft de wachtwoorden en een
+  `DB_SECRET_KEY` in `backend/.env`, en draait de eerste migratie.
+- In de backend: `src/db/` (sql, pools, tenants, migrate, crypto, cli), `migrations/control` + `migrations/tenant`,
+  `/health` met `database: 'ok' | 'down'`, migratie bij het opstarten, `docs/database.md` en de regels in AGENTS.md.
+- Commando's: `npm run db:migrate`, `db:tenant:create -- "Naam"`, `db:tenant:list`, `db:tenant:block -- <key>`,
+  `db:tenant:unblock -- <key>`.
+- Elke tenant-rol kan enkel met de eigen database verbinden; wachtwoorden van tenant-rollen staan versleuteld
+  (AES-256-GCM) in de control-database. Tenants worden nooit automatisch verwijderd.
+
 ## GitHub — altijd de laatste vraag
 
 1. _Wil je dit naar GitHub pushen?_
@@ -254,6 +286,7 @@ src/
 │  ├─ notfound.ts      vertaalde 404
 │  ├─ backend-status.ts  blok "Backend" op de startpagina
 │  ├─ backend/         NestJS / Express (index, nest, express, shared)
+│  ├─ database/        PostgreSQL: vragen, rollen, docker, templates van src/db
 │  └─ github.ts        pushen naar GitHub of de commando's tonen
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```

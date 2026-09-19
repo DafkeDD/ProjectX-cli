@@ -19,6 +19,14 @@ import {
     BACKEND_DIR
 } from './steps/backend/index.js'
 import { setupVsCode } from './steps/editor.js'
+import {
+    appendDatabaseReadme,
+    askDatabase,
+    databaseLabel,
+    prepareDatabase,
+    setupDatabase,
+    type DatabaseChoice
+} from './steps/database/index.js'
 import { orCancel } from './utils/prompt.js'
 import { isGlobalInstall } from './utils/guard.js'
 import type { PackageManager } from './types.js'
@@ -64,6 +72,9 @@ async function main(): Promise<void> {
     if (backend !== 'none' && !i18n) i18n = await askI18n()
     const backendPort: number | null = backend !== 'none' ? await askBackendPort(port ? [port] : []) : null
 
+    // ---- Database (hoort bij de backend) -----------------------------------
+    const database: DatabaseChoice | null = backend !== 'none' ? await askDatabase(app.appName) : null
+
     // Helemaal als laatste: naar GitHub?
     const github = await askGithub(app.appName)
 
@@ -89,6 +100,7 @@ async function main(): Promise<void> {
                 : []),
             ...(port ? [`${pc.dim('Poort   ')}  ${pc.cyan(String(port))}${pc.dim('  in frontend/.env')}`] : []),
             `${pc.dim('Backend ')}  ${pc.cyan(backendLabel(backend, backendPort))}`,
+            ...(backend !== 'none' ? [`${pc.dim('Database')}  ${pc.cyan(databaseLabel(database))}`] : []),
             `${pc.dim('GitHub  ')}  ${pc.cyan(githubLabel(github))}`,
             `${pc.dim('Manager ')}  ${pc.cyan(PACKAGE_MANAGER)}`
         ].join('\n'),
@@ -102,6 +114,9 @@ async function main(): Promise<void> {
     }
 
     // ---- Installeren -------------------------------------------------------
+    // Eerst de database: een probleem daar zien we liever vóór er iets geïnstalleerd is.
+    const dbSecrets = database ? await prepareDatabase(database) : null
+
     const apiUrl = backendPort ? `http://localhost:${backendPort}` : undefined
     if (i18n && icons && port)
         await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, { i18n, icons, app, port, ui, apiUrl })
@@ -111,6 +126,13 @@ async function main(): Promise<void> {
             port: backendPort,
             frontendUrl: `http://localhost:${port ?? 3000}`,
             i18n
+        })
+    if (database && dbSecrets && backendPort && backend !== 'none')
+        await setupDatabase(database, dbSecrets, projectDir, BACKEND_DIR, PACKAGE_MANAGER, {
+            backend,
+            backendPort,
+            backendDevCommand: backendDevCommand(backend, PACKAGE_MANAGER),
+            frontendPort: frontend === 'nextjs' ? port : null
         })
 
     // ---- VS Code (projectmap) ----------------------------------------------
@@ -131,6 +153,7 @@ async function main(): Promise<void> {
         ...(frontend === 'nextjs' ? [{ dir: FRONTEND_DIR, run: `${PACKAGE_MANAGER} run dev` }] : []),
         ...(backend !== 'none' ? [{ dir: BACKEND_DIR, run: backendDevCommand(backend, PACKAGE_MANAGER) }] : [])
     ])
+    if (database) appendDatabaseReadme(projectDir, database, frontend === 'nextjs')
     await pushToGithub(github, projectDir)
 
     // ---- Volgende stappen --------------------------------------------------
@@ -142,6 +165,12 @@ async function main(): Promise<void> {
         steps.push(
             `cd ${BACKEND_DIR} && ${backendDevCommand(backend, PACKAGE_MANAGER)}   ${pc.dim(`http://localhost:${backendPort}/health`)}`
         )
+    }
+    if (database) {
+        steps.push(
+            `cd ${BACKEND_DIR} && ${PACKAGE_MANAGER} run db:tenant:create -- "Mijn organisatie"   ${pc.dim('eerste tenant')}`
+        )
+        if (database.mode === 'docker') steps.push(`docker compose up --build   ${pc.dim('of alles in Docker')}`)
     }
     if (steps.length > 0) p.note(steps.join('\n'), 'Volgende stappen')
 

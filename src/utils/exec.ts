@@ -34,3 +34,17 @@ export function runQuiet(command: string, args: string[], cwd: string = process.
         })
     })
 }
+
+/** Voert een commando uit en geeft stdout terug (null als het mislukt of niet bestaat). */
+export function runCapture(command: string, args: string[], cwd: string = process.cwd()): Promise<string | null> {
+    return new Promise(resolve => {
+        const stdio: ['ignore', 'pipe', 'ignore'] = ['ignore', 'pipe', 'ignore']
+        const child = USE_SHELL
+            ? spawn(commandLine(command, args), { cwd, stdio, shell: true })
+            : spawn(command, args, { cwd, stdio })
+        let out = ''
+        child.stdout?.on('data', d => (out += String(d)))
+        child.on('error', () => resolve(null))
+        child.on('close', code => resolve(code === 0 ? out.trim() : null))
+    })
+}
