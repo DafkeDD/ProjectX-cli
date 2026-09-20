@@ -1,0 +1,1058 @@
+{
+    "en": {
+        "common": {
+            "email": "Email address",
+            "password": "Password",
+            "name": "Name",
+            "passwordHint": "At least 10 characters, with a letter and a number.",
+            "continue": "Continue",
+            "cancel": "Cancel",
+            "save": "Save",
+            "logout": "Sign out",
+            "backToLogin": "Back to sign in",
+            "personal": "Personal",
+            "company": "Company",
+            "copy": "Copy",
+            "copied": "Copied"
+        },
+        "roles": {
+            "owner": "Owner",
+            "admin": "Admin",
+            "member": "Member"
+        },
+        "login": {
+            "title": "Sign in",
+            "description": "Sign in with your account to continue.",
+            "submit": "Sign in",
+            "forgot": "Forgot password?",
+            "noAccount": "No account yet? Register"
+        },
+        "register": {
+            "title": "Create account",
+            "description": "One account for all apps. You get your own organization right away.",
+            "submit": "Create account",
+            "haveAccount": "Already have an account? Sign in",
+            "organization": "Company name (optional)",
+            "organizationHint": "Leave empty to use your own name.",
+            "checkMailTitle": "Check your inbox",
+            "checkMailDescription": "We sent a confirmation link to {email}. Click it to activate your account.",
+            "resend": "Send the email again",
+            "resent": "The email has been sent again."
+        },
+        "verify": {
+            "title": "Confirm your email address",
+            "description": "Click the button to activate your account.",
+            "submit": "Confirm",
+            "doneTitle": "Your account is active",
+            "doneDescription": "Your email address is confirmed and you are signed in."
+        },
+        "forgot": {
+            "title": "Forgot password",
+            "description": "Enter your email address and we will send you a link to choose a new password.",
+            "submit": "Send link",
+            "sentTitle": "Check your inbox",
+            "sentDescription": "If an account exists for this address, you will receive a link within a few minutes."
+        },
+        "reset": {
+            "title": "Choose a new password",
+            "description": "Choose a new password for your account.",
+            "newPassword": "New password",
+            "submit": "Save password",
+            "doneTitle": "Password changed",
+            "doneDescription": "You can now sign in with your new password. You have been signed out everywhere else."
+        },
+        "interaction": {
+            "loading": "Loading…",
+            "expiredTitle": "Sign-in not possible",
+            "loginTitle": "Sign in to {client}",
+            "loginDescription": "Use your account to continue.",
+            "sessionDescription": "You are already signed in.",
+            "continueAs": "Continue as {name}",
+            "otherAccount": "Use another account",
+            "orgTitle": "Choose an organization",
+            "orgDescription": "For which organization do you want to open {client}?",
+            "noOrganizations": "You are not a member of any organization yet."
+        },
+        "error": {
+            "title": "Something went wrong",
+            "description": "The sign-in could not be completed. Go back to the app and try again.",
+            "home": "To the home page"
+        },
+        "home": {
+            "nav": "My account",
+            "welcome": "Welcome, {name}",
+            "description": "This is your account for all apps. You manage your organizations here.",
+            "organizations": "Organizations",
+            "organizationsDescription": "The organizations you belong to, and your role in them.",
+            "kind": "Type",
+            "role": "Role",
+            "tenantKey": "Key"
+        },
+        "admin": {
+            "nav": "Registration tokens",
+            "title": "Registration tokens",
+            "description": "An app connects to the hub with a registration token. You can view, change, renew or revoke tokens at any time.",
+            "new": "New token",
+            "newTitle": "New registration token",
+            "editTitle": "Edit registration token",
+            "formDescription": "Expiry date, maximum and domains are optional.",
+            "create": "Create",
+            "token": "Token",
+            "status": "Status",
+            "uses": "Used",
+            "expiresAt": "Expires on",
+            "expiresHint": "Empty = never expires.",
+            "maxUses": "Maximum number of apps",
+            "maxUsesHint": "Empty = unlimited.",
+            "allowedDomains": "Allowed domains",
+            "allowedDomainsHint": "Comma-separated. Empty = every domain.",
+            "apps": "Apps",
+            "created": "Created",
+            "actions": "Actions",
+            "never": "Never",
+            "show": "Show",
+            "hide": "Hide",
+            "edit": "Edit",
+            "renew": "Renew",
+            "revoke": "Revoke",
+            "renewTitle": "Renew token?",
+            "renewDescription": "\"{name}\" gets a new value. The old token stops working immediately; apps that are already connected keep working.",
+            "revokeTitle": "Revoke token?",
+            "revokeDescription": "\"{name}\" can no longer be used to connect new apps. Connected apps keep working.",
+            "freshTitle": "Token \"{name}\"",
+            "freshHint": "Copy it now, or later with Show.",
+            "emptyTitle": "No registration tokens yet",
+            "emptyDescription": "Create a token to connect your first app.",
+            "statuses": {
+                "active": "Active",
+                "revoked": "Revoked",
+                "expired": "Expired",
+                "usedUp": "Used up"
+            }
+        }
+    },
+    "nl": {
+        "common": {
+            "email": "E-mailadres",
+            "password": "Wachtwoord",
+            "name": "Naam",
+            "passwordHint": "Minstens 10 tekens, met een letter en een cijfer.",
+            "continue": "Verder",
+            "cancel": "Annuleren",
+            "save": "Opslaan",
+            "logout": "Afmelden",
+            "backToLogin": "Terug naar aanmelden",
+            "personal": "Persoonlijk",
+            "company": "Bedrijf",
+            "copy": "Kopiëren",
+            "copied": "Gekopieerd"
+        },
+        "roles": {
+            "owner": "Eigenaar",
+            "admin": "Beheerder",
+            "member": "Lid"
+        },
+        "login": {
+            "title": "Aanmelden",
+            "description": "Meld je aan met je account om verder te gaan.",
+            "submit": "Aanmelden",
+            "forgot": "Wachtwoord vergeten?",
+            "noAccount": "Nog geen account? Registreer"
+        },
+        "register": {
+            "title": "Account aanmaken",
+            "description": "Eén account voor alle apps. Je krijgt meteen je eigen organisatie.",
+            "submit": "Account aanmaken",
+            "haveAccount": "Al een account? Meld je aan",
+            "organization": "Bedrijfsnaam (optioneel)",
+            "organizationHint": "Leeg laten = je eigen naam.",
+            "checkMailTitle": "Kijk in je mailbox",
+            "checkMailDescription": "We stuurden een bevestigingslink naar {email}. Klik erop om je account te activeren.",
+            "resend": "Stuur de e-mail opnieuw",
+            "resent": "De e-mail is opnieuw verstuurd."
+        },
+        "verify": {
+            "title": "Bevestig je e-mailadres",
+            "description": "Klik op de knop om je account te activeren.",
+            "submit": "Bevestigen",
+            "doneTitle": "Je account is actief",
+            "doneDescription": "Je e-mailadres is bevestigd en je bent aangemeld."
+        },
+        "forgot": {
+            "title": "Wachtwoord vergeten",
+            "description": "Geef je e-mailadres en we sturen je een link om een nieuw wachtwoord te kiezen.",
+            "submit": "Link versturen",
+            "sentTitle": "Kijk in je mailbox",
+            "sentDescription": "Bestaat er een account met dit adres, dan krijg je binnen enkele minuten een link."
+        },
+        "reset": {
+            "title": "Kies een nieuw wachtwoord",
+            "description": "Kies een nieuw wachtwoord voor je account.",
+            "newPassword": "Nieuw wachtwoord",
+            "submit": "Wachtwoord opslaan",
+            "doneTitle": "Wachtwoord gewijzigd",
+            "doneDescription": "Je kan nu aanmelden met je nieuwe wachtwoord. Overal elders ben je afgemeld."
+        },
+        "interaction": {
+            "loading": "Laden…",
+            "expiredTitle": "Aanmelden lukt niet",
+            "loginTitle": "Aanmelden bij {client}",
+            "loginDescription": "Gebruik je account om verder te gaan.",
+            "sessionDescription": "Je bent al aangemeld.",
+            "continueAs": "Verder als {name}",
+            "otherAccount": "Ander account gebruiken",
+            "orgTitle": "Kies een organisatie",
+            "orgDescription": "Voor welke organisatie wil je {client} openen?",
+            "noOrganizations": "Je bent nog geen lid van een organisatie."
+        },
+        "error": {
+            "title": "Er ging iets mis",
+            "description": "Het aanmelden kon niet afgerond worden. Ga terug naar de app en probeer opnieuw.",
+            "home": "Naar de startpagina"
+        },
+        "home": {
+            "nav": "Mijn account",
+            "welcome": "Welkom, {name}",
+            "description": "Dit is je account voor alle apps. Hier beheer je je organisaties.",
+            "organizations": "Organisaties",
+            "organizationsDescription": "De organisaties waar je lid van bent, en je rol erin.",
+            "kind": "Soort",
+            "role": "Rol",
+            "tenantKey": "Sleutel"
+        },
+        "admin": {
+            "nav": "Registratietokens",
+            "title": "Registratietokens",
+            "description": "Een app sluit zich aan bij de hub met een registratietoken. Je kan tokens altijd bekijken, wijzigen, vernieuwen of intrekken.",
+            "new": "Nieuw token",
+            "newTitle": "Nieuw registratietoken",
+            "editTitle": "Registratietoken wijzigen",
+            "formDescription": "Vervaldatum, maximum en domeinen zijn optioneel.",
+            "create": "Aanmaken",
+            "token": "Token",
+            "status": "Status",
+            "uses": "Gebruikt",
+            "expiresAt": "Vervalt op",
+            "expiresHint": "Leeg = vervalt nooit.",
+            "maxUses": "Maximum aantal apps",
+            "maxUsesHint": "Leeg = onbeperkt.",
+            "allowedDomains": "Toegelaten domeinen",
+            "allowedDomainsHint": "Gescheiden door komma's. Leeg = elk domein.",
+            "apps": "Apps",
+            "created": "Aangemaakt",
+            "actions": "Acties",
+            "never": "Nooit",
+            "show": "Tonen",
+            "hide": "Verbergen",
+            "edit": "Wijzigen",
+            "renew": "Vernieuwen",
+            "revoke": "Intrekken",
+            "renewTitle": "Token vernieuwen?",
+            "renewDescription": "\"{name}\" krijgt een nieuwe waarde. Het oude token werkt meteen niet meer; apps die al aangesloten zijn blijven werken.",
+            "revokeTitle": "Token intrekken?",
+            "revokeDescription": "Met \"{name}\" kunnen geen nieuwe apps meer aansluiten. Aangesloten apps blijven werken.",
+            "freshTitle": "Token \"{name}\"",
+            "freshHint": "Kopieer het nu, of later via Tonen.",
+            "emptyTitle": "Nog geen registratietokens",
+            "emptyDescription": "Maak een token aan om je eerste app aan te sluiten.",
+            "statuses": {
+                "active": "Actief",
+                "revoked": "Ingetrokken",
+                "expired": "Verlopen",
+                "usedUp": "Opgebruikt"
+            }
+        }
+    },
+    "fr": {
+        "common": {
+            "email": "Adresse e-mail",
+            "password": "Mot de passe",
+            "name": "Nom",
+            "passwordHint": "Au moins 10 caractères, avec une lettre et un chiffre.",
+            "continue": "Continuer",
+            "cancel": "Annuler",
+            "save": "Enregistrer",
+            "logout": "Se déconnecter",
+            "backToLogin": "Retour à la connexion",
+            "personal": "Personnel",
+            "company": "Entreprise",
+            "copy": "Copier",
+            "copied": "Copié"
+        },
+        "roles": {
+            "owner": "Propriétaire",
+            "admin": "Administrateur",
+            "member": "Membre"
+        },
+        "login": {
+            "title": "Se connecter",
+            "description": "Connectez-vous avec votre compte pour continuer.",
+            "submit": "Se connecter",
+            "forgot": "Mot de passe oublié ?",
+            "noAccount": "Pas encore de compte ? Inscrivez-vous"
+        },
+        "register": {
+            "title": "Créer un compte",
+            "description": "Un seul compte pour toutes les applications. Vous obtenez tout de suite votre propre organisation.",
+            "submit": "Créer le compte",
+            "haveAccount": "Déjà un compte ? Connectez-vous",
+            "organization": "Nom de l’entreprise (facultatif)",
+            "organizationHint": "Laissez vide pour utiliser votre propre nom.",
+            "checkMailTitle": "Consultez votre boîte de réception",
+            "checkMailDescription": "Nous avons envoyé un lien de confirmation à {email}. Cliquez dessus pour activer votre compte.",
+            "resend": "Renvoyer l’e-mail",
+            "resent": "L’e-mail a été renvoyé."
+        },
+        "verify": {
+            "title": "Confirmez votre adresse e-mail",
+            "description": "Cliquez sur le bouton pour activer votre compte.",
+            "submit": "Confirmer",
+            "doneTitle": "Votre compte est actif",
+            "doneDescription": "Votre adresse e-mail est confirmée et vous êtes connecté."
+        },
+        "forgot": {
+            "title": "Mot de passe oublié",
+            "description": "Saisissez votre adresse e-mail et nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+            "submit": "Envoyer le lien",
+            "sentTitle": "Consultez votre boîte de réception",
+            "sentDescription": "Si un compte existe pour cette adresse, vous recevrez un lien dans quelques minutes."
+        },
+        "reset": {
+            "title": "Choisissez un nouveau mot de passe",
+            "description": "Choisissez un nouveau mot de passe pour votre compte.",
+            "newPassword": "Nouveau mot de passe",
+            "submit": "Enregistrer le mot de passe",
+            "doneTitle": "Mot de passe modifié",
+            "doneDescription": "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe. Vous avez été déconnecté partout ailleurs."
+        },
+        "interaction": {
+            "loading": "Chargement…",
+            "expiredTitle": "Connexion impossible",
+            "loginTitle": "Se connecter à {client}",
+            "loginDescription": "Utilisez votre compte pour continuer.",
+            "sessionDescription": "Vous êtes déjà connecté.",
+            "continueAs": "Continuer en tant que {name}",
+            "otherAccount": "Utiliser un autre compte",
+            "orgTitle": "Choisissez une organisation",
+            "orgDescription": "Pour quelle organisation voulez-vous ouvrir {client} ?",
+            "noOrganizations": "Vous n’êtes encore membre d’aucune organisation."
+        },
+        "error": {
+            "title": "Une erreur s’est produite",
+            "description": "La connexion n’a pas pu aboutir. Retournez à l’application et réessayez.",
+            "home": "Vers la page d’accueil"
+        },
+        "home": {
+            "nav": "Mon compte",
+            "welcome": "Bienvenue, {name}",
+            "description": "Voici votre compte pour toutes les applications. Vous gérez ici vos organisations.",
+            "organizations": "Organisations",
+            "organizationsDescription": "Les organisations dont vous êtes membre, et votre rôle.",
+            "kind": "Type",
+            "role": "Rôle",
+            "tenantKey": "Clé"
+        },
+        "admin": {
+            "nav": "Jetons d’inscription",
+            "title": "Jetons d’inscription",
+            "description": "Une application se connecte au hub avec un jeton d’inscription. Vous pouvez à tout moment consulter, modifier, renouveler ou révoquer les jetons.",
+            "new": "Nouveau jeton",
+            "newTitle": "Nouveau jeton d’inscription",
+            "editTitle": "Modifier le jeton d’inscription",
+            "formDescription": "La date d’expiration, le maximum et les domaines sont facultatifs.",
+            "create": "Créer",
+            "token": "Jeton",
+            "status": "Statut",
+            "uses": "Utilisé",
+            "expiresAt": "Expire le",
+            "expiresHint": "Vide = n’expire jamais.",
+            "maxUses": "Nombre maximal d’applications",
+            "maxUsesHint": "Vide = illimité.",
+            "allowedDomains": "Domaines autorisés",
+            "allowedDomainsHint": "Séparés par des virgules. Vide = tous les domaines.",
+            "apps": "Applications",
+            "created": "Créé",
+            "actions": "Actions",
+            "never": "Jamais",
+            "show": "Afficher",
+            "hide": "Masquer",
+            "edit": "Modifier",
+            "renew": "Renouveler",
+            "revoke": "Révoquer",
+            "renewTitle": "Renouveler le jeton ?",
+            "renewDescription": "« {name} » reçoit une nouvelle valeur. L’ancien jeton cesse immédiatement de fonctionner ; les applications déjà connectées continuent de fonctionner.",
+            "revokeTitle": "Révoquer le jeton ?",
+            "revokeDescription": "« {name} » ne peut plus servir à connecter de nouvelles applications. Les applications connectées continuent de fonctionner.",
+            "freshTitle": "Jeton « {name} »",
+            "freshHint": "Copiez-le maintenant, ou plus tard via Afficher.",
+            "emptyTitle": "Aucun jeton d’inscription",
+            "emptyDescription": "Créez un jeton pour connecter votre première application.",
+            "statuses": {
+                "active": "Actif",
+                "revoked": "Révoqué",
+                "expired": "Expiré",
+                "usedUp": "Épuisé"
+            }
+        }
+    },
+    "de": {
+        "common": {
+            "email": "E-Mail-Adresse",
+            "password": "Passwort",
+            "name": "Name",
+            "passwordHint": "Mindestens 10 Zeichen, mit einem Buchstaben und einer Zahl.",
+            "continue": "Weiter",
+            "cancel": "Abbrechen",
+            "save": "Speichern",
+            "logout": "Abmelden",
+            "backToLogin": "Zurück zur Anmeldung",
+            "personal": "Persönlich",
+            "company": "Unternehmen",
+            "copy": "Kopieren",
+            "copied": "Kopiert"
+        },
+        "roles": {
+            "owner": "Inhaber",
+            "admin": "Administrator",
+            "member": "Mitglied"
+        },
+        "login": {
+            "title": "Anmelden",
+            "description": "Melde dich mit deinem Konto an, um fortzufahren.",
+            "submit": "Anmelden",
+            "forgot": "Passwort vergessen?",
+            "noAccount": "Noch kein Konto? Registrieren"
+        },
+        "register": {
+            "title": "Konto erstellen",
+            "description": "Ein Konto für alle Apps. Du bekommst sofort deine eigene Organisation.",
+            "submit": "Konto erstellen",
+            "haveAccount": "Schon ein Konto? Anmelden",
+            "organization": "Firmenname (optional)",
+            "organizationHint": "Leer lassen = dein eigener Name.",
+            "checkMailTitle": "Schau in dein Postfach",
+            "checkMailDescription": "Wir haben einen Bestätigungslink an {email} geschickt. Klicke darauf, um dein Konto zu aktivieren.",
+            "resend": "E-Mail erneut senden",
+            "resent": "Die E-Mail wurde erneut gesendet."
+        },
+        "verify": {
+            "title": "Bestätige deine E-Mail-Adresse",
+            "description": "Klicke auf die Schaltfläche, um dein Konto zu aktivieren.",
+            "submit": "Bestätigen",
+            "doneTitle": "Dein Konto ist aktiv",
+            "doneDescription": "Deine E-Mail-Adresse ist bestätigt und du bist angemeldet."
+        },
+        "forgot": {
+            "title": "Passwort vergessen",
+            "description": "Gib deine E-Mail-Adresse ein und wir schicken dir einen Link, um ein neues Passwort zu wählen.",
+            "submit": "Link senden",
+            "sentTitle": "Schau in dein Postfach",
+            "sentDescription": "Wenn es ein Konto mit dieser Adresse gibt, bekommst du in wenigen Minuten einen Link."
+        },
+        "reset": {
+            "title": "Neues Passwort wählen",
+            "description": "Wähle ein neues Passwort für dein Konto.",
+            "newPassword": "Neues Passwort",
+            "submit": "Passwort speichern",
+            "doneTitle": "Passwort geändert",
+            "doneDescription": "Du kannst dich jetzt mit deinem neuen Passwort anmelden. Überall sonst wurdest du abgemeldet."
+        },
+        "interaction": {
+            "loading": "Wird geladen…",
+            "expiredTitle": "Anmeldung nicht möglich",
+            "loginTitle": "Bei {client} anmelden",
+            "loginDescription": "Verwende dein Konto, um fortzufahren.",
+            "sessionDescription": "Du bist bereits angemeldet.",
+            "continueAs": "Weiter als {name}",
+            "otherAccount": "Anderes Konto verwenden",
+            "orgTitle": "Organisation wählen",
+            "orgDescription": "Für welche Organisation möchtest du {client} öffnen?",
+            "noOrganizations": "Du bist noch in keiner Organisation Mitglied."
+        },
+        "error": {
+            "title": "Etwas ist schiefgelaufen",
+            "description": "Die Anmeldung konnte nicht abgeschlossen werden. Geh zurück zur App und versuche es erneut.",
+            "home": "Zur Startseite"
+        },
+        "home": {
+            "nav": "Mein Konto",
+            "welcome": "Willkommen, {name}",
+            "description": "Das ist dein Konto für alle Apps. Hier verwaltest du deine Organisationen.",
+            "organizations": "Organisationen",
+            "organizationsDescription": "Die Organisationen, in denen du Mitglied bist, und deine Rolle darin.",
+            "kind": "Art",
+            "role": "Rolle",
+            "tenantKey": "Schlüssel"
+        },
+        "admin": {
+            "nav": "Registrierungstokens",
+            "title": "Registrierungstokens",
+            "description": "Eine App verbindet sich mit einem Registrierungstoken mit dem Hub. Du kannst Tokens jederzeit ansehen, ändern, erneuern oder widerrufen.",
+            "new": "Neues Token",
+            "newTitle": "Neues Registrierungstoken",
+            "editTitle": "Registrierungstoken bearbeiten",
+            "formDescription": "Ablaufdatum, Maximum und Domains sind optional.",
+            "create": "Erstellen",
+            "token": "Token",
+            "status": "Status",
+            "uses": "Verwendet",
+            "expiresAt": "Läuft ab am",
+            "expiresHint": "Leer = läuft nie ab.",
+            "maxUses": "Maximale Anzahl Apps",
+            "maxUsesHint": "Leer = unbegrenzt.",
+            "allowedDomains": "Erlaubte Domains",
+            "allowedDomainsHint": "Durch Kommas getrennt. Leer = jede Domain.",
+            "apps": "Apps",
+            "created": "Erstellt",
+            "actions": "Aktionen",
+            "never": "Nie",
+            "show": "Anzeigen",
+            "hide": "Ausblenden",
+            "edit": "Bearbeiten",
+            "renew": "Erneuern",
+            "revoke": "Widerrufen",
+            "renewTitle": "Token erneuern?",
+            "renewDescription": "„{name}“ bekommt einen neuen Wert. Das alte Token funktioniert sofort nicht mehr; bereits verbundene Apps funktionieren weiter.",
+            "revokeTitle": "Token widerrufen?",
+            "revokeDescription": "Mit „{name}“ können keine neuen Apps mehr verbunden werden. Verbundene Apps funktionieren weiter.",
+            "freshTitle": "Token „{name}“",
+            "freshHint": "Kopiere es jetzt oder später über Anzeigen.",
+            "emptyTitle": "Noch keine Registrierungstokens",
+            "emptyDescription": "Erstelle ein Token, um deine erste App zu verbinden.",
+            "statuses": {
+                "active": "Aktiv",
+                "revoked": "Widerrufen",
+                "expired": "Abgelaufen",
+                "usedUp": "Aufgebraucht"
+            }
+        }
+    },
+    "es": {
+        "common": {
+            "email": "Correo electrónico",
+            "password": "Contraseña",
+            "name": "Nombre",
+            "passwordHint": "Al menos 10 caracteres, con una letra y un número.",
+            "continue": "Continuar",
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "logout": "Cerrar sesión",
+            "backToLogin": "Volver a iniciar sesión",
+            "personal": "Personal",
+            "company": "Empresa",
+            "copy": "Copiar",
+            "copied": "Copiado"
+        },
+        "roles": {
+            "owner": "Propietario",
+            "admin": "Administrador",
+            "member": "Miembro"
+        },
+        "login": {
+            "title": "Iniciar sesión",
+            "description": "Inicia sesión con tu cuenta para continuar.",
+            "submit": "Iniciar sesión",
+            "forgot": "¿Has olvidado tu contraseña?",
+            "noAccount": "¿Aún no tienes cuenta? Regístrate"
+        },
+        "register": {
+            "title": "Crear cuenta",
+            "description": "Una cuenta para todas las aplicaciones. Recibes tu propia organización al instante.",
+            "submit": "Crear cuenta",
+            "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
+            "organization": "Nombre de la empresa (opcional)",
+            "organizationHint": "Déjalo vacío para usar tu propio nombre.",
+            "checkMailTitle": "Revisa tu bandeja de entrada",
+            "checkMailDescription": "Hemos enviado un enlace de confirmación a {email}. Haz clic en él para activar tu cuenta.",
+            "resend": "Enviar el correo de nuevo",
+            "resent": "El correo se ha enviado de nuevo."
+        },
+        "verify": {
+            "title": "Confirma tu correo electrónico",
+            "description": "Haz clic en el botón para activar tu cuenta.",
+            "submit": "Confirmar",
+            "doneTitle": "Tu cuenta está activa",
+            "doneDescription": "Tu correo electrónico está confirmado y has iniciado sesión."
+        },
+        "forgot": {
+            "title": "Contraseña olvidada",
+            "description": "Introduce tu correo electrónico y te enviaremos un enlace para elegir una contraseña nueva.",
+            "submit": "Enviar enlace",
+            "sentTitle": "Revisa tu bandeja de entrada",
+            "sentDescription": "Si existe una cuenta con esta dirección, recibirás un enlace en unos minutos."
+        },
+        "reset": {
+            "title": "Elige una contraseña nueva",
+            "description": "Elige una contraseña nueva para tu cuenta.",
+            "newPassword": "Contraseña nueva",
+            "submit": "Guardar contraseña",
+            "doneTitle": "Contraseña cambiada",
+            "doneDescription": "Ya puedes iniciar sesión con tu contraseña nueva. Se ha cerrado tu sesión en todos los demás sitios."
+        },
+        "interaction": {
+            "loading": "Cargando…",
+            "expiredTitle": "No se puede iniciar sesión",
+            "loginTitle": "Iniciar sesión en {client}",
+            "loginDescription": "Usa tu cuenta para continuar.",
+            "sessionDescription": "Ya has iniciado sesión.",
+            "continueAs": "Continuar como {name}",
+            "otherAccount": "Usar otra cuenta",
+            "orgTitle": "Elige una organización",
+            "orgDescription": "¿Para qué organización quieres abrir {client}?",
+            "noOrganizations": "Todavía no eres miembro de ninguna organización."
+        },
+        "error": {
+            "title": "Algo salió mal",
+            "description": "No se pudo completar el inicio de sesión. Vuelve a la aplicación e inténtalo de nuevo.",
+            "home": "Ir a la página de inicio"
+        },
+        "home": {
+            "nav": "Mi cuenta",
+            "welcome": "Bienvenido, {name}",
+            "description": "Esta es tu cuenta para todas las aplicaciones. Aquí gestionas tus organizaciones.",
+            "organizations": "Organizaciones",
+            "organizationsDescription": "Las organizaciones de las que eres miembro y tu rol en ellas.",
+            "kind": "Tipo",
+            "role": "Rol",
+            "tenantKey": "Clave"
+        },
+        "admin": {
+            "nav": "Tokens de registro",
+            "title": "Tokens de registro",
+            "description": "Una aplicación se conecta al hub con un token de registro. Puedes ver, cambiar, renovar o revocar los tokens en cualquier momento.",
+            "new": "Nuevo token",
+            "newTitle": "Nuevo token de registro",
+            "editTitle": "Editar token de registro",
+            "formDescription": "La fecha de caducidad, el máximo y los dominios son opcionales.",
+            "create": "Crear",
+            "token": "Token",
+            "status": "Estado",
+            "uses": "Usado",
+            "expiresAt": "Caduca el",
+            "expiresHint": "Vacío = no caduca nunca.",
+            "maxUses": "Número máximo de aplicaciones",
+            "maxUsesHint": "Vacío = ilimitado.",
+            "allowedDomains": "Dominios permitidos",
+            "allowedDomainsHint": "Separados por comas. Vacío = cualquier dominio.",
+            "apps": "Aplicaciones",
+            "created": "Creado",
+            "actions": "Acciones",
+            "never": "Nunca",
+            "show": "Mostrar",
+            "hide": "Ocultar",
+            "edit": "Editar",
+            "renew": "Renovar",
+            "revoke": "Revocar",
+            "renewTitle": "¿Renovar el token?",
+            "renewDescription": "«{name}» recibe un valor nuevo. El token antiguo deja de funcionar de inmediato; las aplicaciones ya conectadas siguen funcionando.",
+            "revokeTitle": "¿Revocar el token?",
+            "revokeDescription": "«{name}» ya no sirve para conectar aplicaciones nuevas. Las aplicaciones conectadas siguen funcionando.",
+            "freshTitle": "Token «{name}»",
+            "freshHint": "Cópialo ahora o más tarde con Mostrar.",
+            "emptyTitle": "Aún no hay tokens de registro",
+            "emptyDescription": "Crea un token para conectar tu primera aplicación.",
+            "statuses": {
+                "active": "Activo",
+                "revoked": "Revocado",
+                "expired": "Caducado",
+                "usedUp": "Agotado"
+            }
+        }
+    },
+    "it": {
+        "common": {
+            "email": "Indirizzo e-mail",
+            "password": "Password",
+            "name": "Nome",
+            "passwordHint": "Almeno 10 caratteri, con una lettera e un numero.",
+            "continue": "Continua",
+            "cancel": "Annulla",
+            "save": "Salva",
+            "logout": "Esci",
+            "backToLogin": "Torna all’accesso",
+            "personal": "Personale",
+            "company": "Azienda",
+            "copy": "Copia",
+            "copied": "Copiato"
+        },
+        "roles": {
+            "owner": "Proprietario",
+            "admin": "Amministratore",
+            "member": "Membro"
+        },
+        "login": {
+            "title": "Accedi",
+            "description": "Accedi con il tuo account per continuare.",
+            "submit": "Accedi",
+            "forgot": "Password dimenticata?",
+            "noAccount": "Non hai ancora un account? Registrati"
+        },
+        "register": {
+            "title": "Crea account",
+            "description": "Un solo account per tutte le app. Ricevi subito la tua organizzazione.",
+            "submit": "Crea account",
+            "haveAccount": "Hai già un account? Accedi",
+            "organization": "Nome dell’azienda (facoltativo)",
+            "organizationHint": "Lascia vuoto per usare il tuo nome.",
+            "checkMailTitle": "Controlla la posta in arrivo",
+            "checkMailDescription": "Abbiamo inviato un link di conferma a {email}. Fai clic per attivare il tuo account.",
+            "resend": "Invia di nuovo l’e-mail",
+            "resent": "L’e-mail è stata inviata di nuovo."
+        },
+        "verify": {
+            "title": "Conferma il tuo indirizzo e-mail",
+            "description": "Fai clic sul pulsante per attivare il tuo account.",
+            "submit": "Conferma",
+            "doneTitle": "Il tuo account è attivo",
+            "doneDescription": "Il tuo indirizzo e-mail è confermato e hai effettuato l’accesso."
+        },
+        "forgot": {
+            "title": "Password dimenticata",
+            "description": "Inserisci il tuo indirizzo e-mail e ti invieremo un link per scegliere una nuova password.",
+            "submit": "Invia link",
+            "sentTitle": "Controlla la posta in arrivo",
+            "sentDescription": "Se esiste un account con questo indirizzo, riceverai un link entro pochi minuti."
+        },
+        "reset": {
+            "title": "Scegli una nuova password",
+            "description": "Scegli una nuova password per il tuo account.",
+            "newPassword": "Nuova password",
+            "submit": "Salva password",
+            "doneTitle": "Password cambiata",
+            "doneDescription": "Ora puoi accedere con la nuova password. Sei stato disconnesso ovunque."
+        },
+        "interaction": {
+            "loading": "Caricamento…",
+            "expiredTitle": "Accesso non possibile",
+            "loginTitle": "Accedi a {client}",
+            "loginDescription": "Usa il tuo account per continuare.",
+            "sessionDescription": "Hai già effettuato l’accesso.",
+            "continueAs": "Continua come {name}",
+            "otherAccount": "Usa un altro account",
+            "orgTitle": "Scegli un’organizzazione",
+            "orgDescription": "Per quale organizzazione vuoi aprire {client}?",
+            "noOrganizations": "Non sei ancora membro di nessuna organizzazione."
+        },
+        "error": {
+            "title": "Qualcosa è andato storto",
+            "description": "Non è stato possibile completare l’accesso. Torna all’app e riprova.",
+            "home": "Alla pagina iniziale"
+        },
+        "home": {
+            "nav": "Il mio account",
+            "welcome": "Benvenuto, {name}",
+            "description": "Questo è il tuo account per tutte le app. Qui gestisci le tue organizzazioni.",
+            "organizations": "Organizzazioni",
+            "organizationsDescription": "Le organizzazioni di cui fai parte e il tuo ruolo.",
+            "kind": "Tipo",
+            "role": "Ruolo",
+            "tenantKey": "Chiave"
+        },
+        "admin": {
+            "nav": "Token di registrazione",
+            "title": "Token di registrazione",
+            "description": "Un’app si collega all’hub con un token di registrazione. Puoi visualizzare, modificare, rinnovare o revocare i token in qualsiasi momento.",
+            "new": "Nuovo token",
+            "newTitle": "Nuovo token di registrazione",
+            "editTitle": "Modifica token di registrazione",
+            "formDescription": "Data di scadenza, massimo e domini sono facoltativi.",
+            "create": "Crea",
+            "token": "Token",
+            "status": "Stato",
+            "uses": "Usato",
+            "expiresAt": "Scade il",
+            "expiresHint": "Vuoto = non scade mai.",
+            "maxUses": "Numero massimo di app",
+            "maxUsesHint": "Vuoto = illimitato.",
+            "allowedDomains": "Domini consentiti",
+            "allowedDomainsHint": "Separati da virgole. Vuoto = qualsiasi dominio.",
+            "apps": "App",
+            "created": "Creato",
+            "actions": "Azioni",
+            "never": "Mai",
+            "show": "Mostra",
+            "hide": "Nascondi",
+            "edit": "Modifica",
+            "renew": "Rinnova",
+            "revoke": "Revoca",
+            "renewTitle": "Rinnovare il token?",
+            "renewDescription": "«{name}» riceve un nuovo valore. Il vecchio token smette subito di funzionare; le app già collegate continuano a funzionare.",
+            "revokeTitle": "Revocare il token?",
+            "revokeDescription": "«{name}» non può più essere usato per collegare nuove app. Le app collegate continuano a funzionare.",
+            "freshTitle": "Token «{name}»",
+            "freshHint": "Copialo ora o più tardi con Mostra.",
+            "emptyTitle": "Ancora nessun token di registrazione",
+            "emptyDescription": "Crea un token per collegare la tua prima app.",
+            "statuses": {
+                "active": "Attivo",
+                "revoked": "Revocato",
+                "expired": "Scaduto",
+                "usedUp": "Esaurito"
+            }
+        }
+    },
+    "pt": {
+        "common": {
+            "email": "Endereço de e-mail",
+            "password": "Palavra-passe",
+            "name": "Nome",
+            "passwordHint": "Pelo menos 10 caracteres, com uma letra e um número.",
+            "continue": "Continuar",
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "logout": "Terminar sessão",
+            "backToLogin": "Voltar ao início de sessão",
+            "personal": "Pessoal",
+            "company": "Empresa",
+            "copy": "Copiar",
+            "copied": "Copiado"
+        },
+        "roles": {
+            "owner": "Proprietário",
+            "admin": "Administrador",
+            "member": "Membro"
+        },
+        "login": {
+            "title": "Iniciar sessão",
+            "description": "Inicie sessão com a sua conta para continuar.",
+            "submit": "Iniciar sessão",
+            "forgot": "Esqueceu-se da palavra-passe?",
+            "noAccount": "Ainda não tem conta? Registe-se"
+        },
+        "register": {
+            "title": "Criar conta",
+            "description": "Uma conta para todas as aplicações. Recebe de imediato a sua própria organização.",
+            "submit": "Criar conta",
+            "haveAccount": "Já tem conta? Inicie sessão",
+            "organization": "Nome da empresa (opcional)",
+            "organizationHint": "Deixe vazio para usar o seu próprio nome.",
+            "checkMailTitle": "Verifique a sua caixa de entrada",
+            "checkMailDescription": "Enviámos um link de confirmação para {email}. Clique nele para ativar a sua conta.",
+            "resend": "Enviar o e-mail novamente",
+            "resent": "O e-mail foi enviado novamente."
+        },
+        "verify": {
+            "title": "Confirme o seu endereço de e-mail",
+            "description": "Clique no botão para ativar a sua conta.",
+            "submit": "Confirmar",
+            "doneTitle": "A sua conta está ativa",
+            "doneDescription": "O seu e-mail está confirmado e tem sessão iniciada."
+        },
+        "forgot": {
+            "title": "Palavra-passe esquecida",
+            "description": "Introduza o seu e-mail e enviamos-lhe um link para escolher uma nova palavra-passe.",
+            "submit": "Enviar link",
+            "sentTitle": "Verifique a sua caixa de entrada",
+            "sentDescription": "Se existir uma conta com este endereço, receberá um link dentro de poucos minutos."
+        },
+        "reset": {
+            "title": "Escolha uma nova palavra-passe",
+            "description": "Escolha uma nova palavra-passe para a sua conta.",
+            "newPassword": "Nova palavra-passe",
+            "submit": "Guardar palavra-passe",
+            "doneTitle": "Palavra-passe alterada",
+            "doneDescription": "Já pode iniciar sessão com a nova palavra-passe. A sessão foi terminada em todos os outros locais."
+        },
+        "interaction": {
+            "loading": "A carregar…",
+            "expiredTitle": "Não é possível iniciar sessão",
+            "loginTitle": "Iniciar sessão em {client}",
+            "loginDescription": "Use a sua conta para continuar.",
+            "sessionDescription": "Já tem sessão iniciada.",
+            "continueAs": "Continuar como {name}",
+            "otherAccount": "Usar outra conta",
+            "orgTitle": "Escolha uma organização",
+            "orgDescription": "Para que organização quer abrir {client}?",
+            "noOrganizations": "Ainda não é membro de nenhuma organização."
+        },
+        "error": {
+            "title": "Algo correu mal",
+            "description": "Não foi possível concluir o início de sessão. Volte à aplicação e tente novamente.",
+            "home": "Ir para a página inicial"
+        },
+        "home": {
+            "nav": "A minha conta",
+            "welcome": "Bem-vindo, {name}",
+            "description": "Esta é a sua conta para todas as aplicações. Aqui gere as suas organizações.",
+            "organizations": "Organizações",
+            "organizationsDescription": "As organizações de que é membro e o seu papel nelas.",
+            "kind": "Tipo",
+            "role": "Papel",
+            "tenantKey": "Chave"
+        },
+        "admin": {
+            "nav": "Tokens de registo",
+            "title": "Tokens de registo",
+            "description": "Uma aplicação liga-se ao hub com um token de registo. Pode ver, alterar, renovar ou revogar tokens a qualquer momento.",
+            "new": "Novo token",
+            "newTitle": "Novo token de registo",
+            "editTitle": "Editar token de registo",
+            "formDescription": "A data de validade, o máximo e os domínios são opcionais.",
+            "create": "Criar",
+            "token": "Token",
+            "status": "Estado",
+            "uses": "Usado",
+            "expiresAt": "Expira a",
+            "expiresHint": "Vazio = nunca expira.",
+            "maxUses": "Número máximo de aplicações",
+            "maxUsesHint": "Vazio = ilimitado.",
+            "allowedDomains": "Domínios permitidos",
+            "allowedDomainsHint": "Separados por vírgulas. Vazio = qualquer domínio.",
+            "apps": "Aplicações",
+            "created": "Criado",
+            "actions": "Ações",
+            "never": "Nunca",
+            "show": "Mostrar",
+            "hide": "Ocultar",
+            "edit": "Editar",
+            "renew": "Renovar",
+            "revoke": "Revogar",
+            "renewTitle": "Renovar o token?",
+            "renewDescription": "«{name}» recebe um novo valor. O token antigo deixa de funcionar de imediato; as aplicações já ligadas continuam a funcionar.",
+            "revokeTitle": "Revogar o token?",
+            "revokeDescription": "«{name}» já não pode ser usado para ligar novas aplicações. As aplicações ligadas continuam a funcionar.",
+            "freshTitle": "Token «{name}»",
+            "freshHint": "Copie-o agora ou mais tarde com Mostrar.",
+            "emptyTitle": "Ainda não há tokens de registo",
+            "emptyDescription": "Crie um token para ligar a sua primeira aplicação.",
+            "statuses": {
+                "active": "Ativo",
+                "revoked": "Revogado",
+                "expired": "Expirado",
+                "usedUp": "Esgotado"
+            }
+        }
+    },
+    "pl": {
+        "common": {
+            "email": "Adres e-mail",
+            "password": "Hasło",
+            "name": "Imię i nazwisko",
+            "passwordHint": "Co najmniej 10 znaków, w tym litera i cyfra.",
+            "continue": "Dalej",
+            "cancel": "Anuluj",
+            "save": "Zapisz",
+            "logout": "Wyloguj się",
+            "backToLogin": "Wróć do logowania",
+            "personal": "Osobista",
+            "company": "Firma",
+            "copy": "Kopiuj",
+            "copied": "Skopiowano"
+        },
+        "roles": {
+            "owner": "Właściciel",
+            "admin": "Administrator",
+            "member": "Członek"
+        },
+        "login": {
+            "title": "Zaloguj się",
+            "description": "Zaloguj się na swoje konto, aby kontynuować.",
+            "submit": "Zaloguj się",
+            "forgot": "Nie pamiętasz hasła?",
+            "noAccount": "Nie masz konta? Zarejestruj się"
+        },
+        "register": {
+            "title": "Utwórz konto",
+            "description": "Jedno konto do wszystkich aplikacji. Od razu dostajesz własną organizację.",
+            "submit": "Utwórz konto",
+            "haveAccount": "Masz już konto? Zaloguj się",
+            "organization": "Nazwa firmy (opcjonalnie)",
+            "organizationHint": "Zostaw puste, aby użyć własnego imienia i nazwiska.",
+            "checkMailTitle": "Sprawdź skrzynkę",
+            "checkMailDescription": "Wysłaliśmy link potwierdzający na adres {email}. Kliknij go, aby aktywować konto.",
+            "resend": "Wyślij e-mail ponownie",
+            "resent": "E-mail został wysłany ponownie."
+        },
+        "verify": {
+            "title": "Potwierdź swój adres e-mail",
+            "description": "Kliknij przycisk, aby aktywować konto.",
+            "submit": "Potwierdź",
+            "doneTitle": "Twoje konto jest aktywne",
+            "doneDescription": "Twój adres e-mail jest potwierdzony i jesteś zalogowany."
+        },
+        "forgot": {
+            "title": "Nie pamiętasz hasła",
+            "description": "Podaj swój adres e-mail, a wyślemy Ci link do ustawienia nowego hasła.",
+            "submit": "Wyślij link",
+            "sentTitle": "Sprawdź skrzynkę",
+            "sentDescription": "Jeśli istnieje konto z tym adresem, w ciągu kilku minut otrzymasz link."
+        },
+        "reset": {
+            "title": "Ustaw nowe hasło",
+            "description": "Ustaw nowe hasło do swojego konta.",
+            "newPassword": "Nowe hasło",
+            "submit": "Zapisz hasło",
+            "doneTitle": "Hasło zmienione",
+            "doneDescription": "Możesz teraz zalogować się nowym hasłem. Wylogowano Cię ze wszystkich innych miejsc."
+        },
+        "interaction": {
+            "loading": "Ładowanie…",
+            "expiredTitle": "Logowanie niemożliwe",
+            "loginTitle": "Zaloguj się do {client}",
+            "loginDescription": "Użyj swojego konta, aby kontynuować.",
+            "sessionDescription": "Jesteś już zalogowany.",
+            "continueAs": "Kontynuuj jako {name}",
+            "otherAccount": "Użyj innego konta",
+            "orgTitle": "Wybierz organizację",
+            "orgDescription": "Dla której organizacji chcesz otworzyć {client}?",
+            "noOrganizations": "Nie należysz jeszcze do żadnej organizacji."
+        },
+        "error": {
+            "title": "Coś poszło nie tak",
+            "description": "Nie udało się dokończyć logowania. Wróć do aplikacji i spróbuj ponownie.",
+            "home": "Do strony głównej"
+        },
+        "home": {
+            "nav": "Moje konto",
+            "welcome": "Witaj, {name}",
+            "description": "To Twoje konto do wszystkich aplikacji. Tutaj zarządzasz swoimi organizacjami.",
+            "organizations": "Organizacje",
+            "organizationsDescription": "Organizacje, do których należysz, i Twoja rola w nich.",
+            "kind": "Rodzaj",
+            "role": "Rola",
+            "tenantKey": "Klucz"
+        },
+        "admin": {
+            "nav": "Tokeny rejestracyjne",
+            "title": "Tokeny rejestracyjne",
+            "description": "Aplikacja łączy się z hubem za pomocą tokenu rejestracyjnego. Tokeny możesz w każdej chwili wyświetlić, zmienić, odnowić lub unieważnić.",
+            "new": "Nowy token",
+            "newTitle": "Nowy token rejestracyjny",
+            "editTitle": "Edytuj token rejestracyjny",
+            "formDescription": "Data wygaśnięcia, limit i domeny są opcjonalne.",
+            "create": "Utwórz",
+            "token": "Token",
+            "status": "Status",
+            "uses": "Użyto",
+            "expiresAt": "Wygasa",
+            "expiresHint": "Puste = nigdy nie wygasa.",
+            "maxUses": "Maksymalna liczba aplikacji",
+            "maxUsesHint": "Puste = bez limitu.",
+            "allowedDomains": "Dozwolone domeny",
+            "allowedDomainsHint": "Oddzielone przecinkami. Puste = każda domena.",
+            "apps": "Aplikacje",
+            "created": "Utworzono",
+            "actions": "Akcje",
+            "never": "Nigdy",
+            "show": "Pokaż",
+            "hide": "Ukryj",
+            "edit": "Edytuj",
+            "renew": "Odnów",
+            "revoke": "Unieważnij",
+            "renewTitle": "Odnowić token?",
+            "renewDescription": "„{name}” otrzyma nową wartość. Stary token od razu przestaje działać; już połączone aplikacje działają dalej.",
+            "revokeTitle": "Unieważnić token?",
+            "revokeDescription": "Za pomocą „{name}” nie można już łączyć nowych aplikacji. Połączone aplikacje działają dalej.",
+            "freshTitle": "Token „{name}”",
+            "freshHint": "Skopiuj go teraz lub później przez Pokaż.",
+            "emptyTitle": "Brak tokenów rejestracyjnych",
+            "emptyDescription": "Utwórz token, aby połączyć pierwszą aplikację.",
+            "statuses": {
+                "active": "Aktywny",
+                "revoked": "Unieważniony",
+                "expired": "Wygasły",
+                "usedUp": "Wykorzystany"
+            }
+        }
+    }
+}

@@ -48,3 +48,35 @@ export function runCapture(command: string, args: string[], cwd: string = proces
         child.on('close', code => resolve(code === 0 ? out.trim() : null))
     })
 }
+
+/**
+ * Voert een commando uit met extra omgevingsvariabelen en geeft stdout terug;
+ * gooit een fout (met de laatste regels van stderr) als het mislukt.
+ */
+export function runOutput(
+    command: string,
+    args: string[],
+    cwd: string = process.cwd(),
+    extraEnv: Record<string, string> = {}
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const options = {
+            cwd,
+            env: { ...process.env, ...extraEnv },
+            stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe']
+        }
+        const child = USE_SHELL
+            ? spawn(commandLine(command, args), { ...options, shell: true })
+            : spawn(command, args, options)
+        let out = ''
+        let err = ''
+        child.stdout?.on('data', d => (out += String(d)))
+        child.stderr?.on('data', d => (err += String(d)))
+        child.on('error', reject)
+        child.on('close', code => {
+            if (code === 0) return resolve(out)
+            const tail = err.trim().split('\n').slice(-8).join('\n')
+            reject(new Error(`\`${command} ${args.join(' ')}\` faalde (exit code ${code}).${tail ? '\n' + tail : ''}`))
+        })
+    })
+}

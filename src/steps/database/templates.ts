@@ -181,8 +181,8 @@ const MIGRATE_TS = `import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import type pg from 'pg'
 
-/** Map met SQL-migraties: migrations/control of migrations/tenant. */
-const dir = (kind: 'control' | 'tenant') => path.resolve('migrations', kind)
+/** Map met SQL-migraties: migrations/<kind> (control, tenant of hub). */
+const dir = (kind: string) => path.resolve('migrations', kind)
 
 /**
  * Draait alle nog niet uitgevoerde migraties (genummerde .sql-bestanden, in
@@ -192,7 +192,7 @@ const dir = (kind: 'control' | 'tenant') => path.resolve('migrations', kind)
  * Regel: migraties zijn altijd achterwaarts compatibel (eerst toevoegen, pas
  * in een latere release oude kolommen weghalen).
  */
-export async function runMigrations(pool: pg.Pool, kind: 'control' | 'tenant'): Promise<string | null> {
+export async function runMigrations(pool: pg.Pool, kind: string): Promise<string | null> {
     const client = await pool.connect()
     try {
         await client.query('select pg_advisory_lock(727001)')

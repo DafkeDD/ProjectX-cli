@@ -183,23 +183,8 @@ async function askDocker(): Promise<{ admin: PgAdmin; newContainer: boolean }> {
     return { admin: { host: 'localhost', port, user, password: pass }, newContainer: true }
 }
 
-/**
- * Vragen: welke database, waar draait ze, en de appKey.
- * Enkel met een backend (de database hoort bij de backend).
- */
-export async function askDatabase(appName: string): Promise<DatabaseChoice | null> {
-    const kind = orCancel(
-        await p.select<'postgres' | 'none'>({
-            message: 'Welke database wil je?',
-            initialValue: 'postgres',
-            options: [
-                { value: 'postgres', label: 'PostgreSQL', hint: 'multitenant: één database per organisatie' },
-                { value: 'none', label: 'Geen database' }
-            ]
-        })
-    )
-    if (kind === 'none') return null
-
+/** Vraag: waar draait PostgreSQL? (Docker of lokaal) + de beheerder. */
+export async function askDatabaseServer(): Promise<{ mode: DatabaseMode; admin: PgAdmin; newContainer: boolean }> {
     let mode: DatabaseMode
     let admin: PgAdmin
     let newContainer = false
@@ -207,17 +192,17 @@ export async function askDatabase(appName: string): Promise<DatabaseChoice | nul
         mode = orCancel(
             await p.select<DatabaseMode>({
                 message: 'Waar draait PostgreSQL?',
-                initialValue: 'docker',
+                initialValue: 'local',
                 options: [
-                    {
-                        value: 'docker',
-                        label: 'Docker',
-                        hint: `gedeelde container ${CONTAINER} + frontend/backend via docker compose`
-                    },
                     {
                         value: 'local',
                         label: 'Lokaal',
                         hint: 'een PostgreSQL die al op deze machine (of server) draait'
+                    },
+                    {
+                        value: 'docker',
+                        label: 'Docker',
+                        hint: `gedeelde container ${CONTAINER} + frontend/backend via docker compose`
                     }
                 ]
             })
@@ -235,6 +220,28 @@ export async function askDatabase(appName: string): Promise<DatabaseChoice | nul
         ;({ admin, newContainer } = await askDocker())
         break
     }
+
+    return { mode, admin, newContainer }
+}
+
+/**
+ * Vragen: welke database, waar draait ze, en de appKey.
+ * Enkel met een backend (de database hoort bij de backend).
+ */
+export async function askDatabase(appName: string): Promise<DatabaseChoice | null> {
+    const kind = orCancel(
+        await p.select<'postgres' | 'none'>({
+            message: 'Welke database wil je?',
+            initialValue: 'postgres',
+            options: [
+                { value: 'postgres', label: 'PostgreSQL', hint: 'multitenant: één database per organisatie' },
+                { value: 'none', label: 'Geen database' }
+            ]
+        })
+    )
+    if (kind === 'none') return null
+
+    const { mode, admin, newContainer } = await askDatabaseServer()
 
     // Kunnen we nu al verbinden? Dan meteen controleren of de sleutel vrij is.
     const probe = mode === 'local' || (await containerState()) === 'running' ? await tryConnect(admin) : null
@@ -545,4 +552,59 @@ export function appendDatabaseReadme(projectDir: string, db: DatabaseChoice, fro
             : [])
     ]
     fs.writeFileSync(file, readme.trimEnd() + '\n\n' + lines.join('\n'), 'utf8')
+}
+
+// ---- SSO-hub: één eigen database ----------------------------------------------
+
+/** Database én rol van de hub. */
+export const HUB_DB = 'projectx_hub'
+
+/** Vragen voor de hub: enkel waar PostgreSQL draait (de naam ligt vast). */
+export async function askHubDatabase(): Promise<DatabaseChoice> {
+    const server = await askDatabaseServer()
+    if (server.mode === 'local' || (await containerState()) === 'running') {
+        const client = await tryConnect(server.admin)
+        if (client instanceof pg.Client) {
+            const { rowCount } = await client.query(
+                'select 1 from pg_database where datname = $1 union all select 1 from pg_roles where rolname = $1',
+                [HUB_DB]
+            )
+            await client.end()
+            if (rowCount) {
+                p.cancel(
+                    `Op deze server bestaat al een ${HUB_DB} (database of rol). Eén hub per server — verwijder de oude eerst, of kies een andere server.`
+                )
+                process.exit(1)
+            }
+        }
+    }
+    return { ...server, appKey: HUB_DB }
+}
+
+export const hubDatabaseLabel = (db: DatabaseChoice) =>
+    `PostgreSQL · ${db.mode === 'docker' ? `Docker (${CONTAINER})` : `lokaal (${db.admin.host}:${db.admin.port})`}${pc.dim(`  -> ${HUB_DB}`)}`
+
+/** Rol + database projectx_hub aanmaken, vóór de rest. Geeft het wachtwoord van de rol terug. */
+export async function prepareHubDatabase(db: DatabaseChoice): Promise<string> {
+    const secret = password()
+    await withProgress('Hub-database voorbereiden', async update => {
+        if (db.mode === 'docker') {
+            update(`Container ${CONTAINER} starten`)
+            await ensureContainer(db.admin)
+        }
+        update('Wachten op PostgreSQL')
+        const admin = await waitForPostgres(db.admin)
+        if (db.mode === 'docker' && db.newContainer) writeAdminConfig(db.admin)
+        try {
+            if (!(await isSuperuser(admin))) throw new Error(`${db.admin.user} is geen superuser.`)
+            update(`Rol en database ${HUB_DB}`)
+            await admin.query(`create role "${HUB_DB}" login password ${lit(secret)}`)
+            await admin.query(`create database "${HUB_DB}" owner "${HUB_DB}"`)
+            await admin.query(`revoke connect, temporary on database "${HUB_DB}" from public`)
+        } finally {
+            await admin.end()
+        }
+    })
+    p.log.success(`Database klaar: ${pc.cyan(HUB_DB)}`)
+    return secret
 }

@@ -25,8 +25,13 @@ import {
     databaseLabel,
     prepareDatabase,
     setupDatabase,
+    askHubDatabase,
+    hubDatabaseLabel,
+    prepareHubDatabase,
     type DatabaseChoice
 } from './steps/database/index.js'
+import { applyHubBackend, applyHubFrontend, askHubAdmin, askSso, type HubAdmin } from './steps/hub/index.js'
+import { formatAll } from './utils/prettier.js'
 import { orCancel } from './utils/prompt.js'
 import { isGlobalInstall } from './utils/guard.js'
 import type { PackageManager } from './types.js'
@@ -54,16 +59,25 @@ async function main(): Promise<void> {
 
     // ---- Vragen (stap voor stap) -------------------------------------------
     const app = await askAppName(projectDir)
-    const frontend = await askFrontend()
+    // Bovenaan: wordt dit een SSO-hub (OIDC-server)?
+    const sso = await askSso()
+    const isHub = sso === 'hub'
+    if (isHub)
+        p.log.info(
+            `SSO-hub: ${pc.cyan('Next.js + ProjectX-UI')} (frontend) · ${pc.cyan('NestJS + oidc-provider')} (backend) · ${pc.cyan('PostgreSQL')}`
+        )
+
+    const frontend = isHub ? 'nextjs' : await askFrontend()
     // Talen enkel als er een frontend komt; next-intl zelf is geen vraag.
     let i18n: I18nConfig | null = frontend === 'nextjs' ? await askI18n() : null
     // Eerst ProjectX-UI: die heeft een eigen icon set, dus daarna is het een vraag naar EXTRA iconen.
-    const ui: UiChoice | null = frontend === 'nextjs' ? await askProjectxUi() : null
-    const icons: IconLibrary | null = frontend === 'nextjs' ? await askIcons(ui !== null) : null
+    // De hub gebruikt altijd ProjectX-UI (alle componenten) en geen extra iconen.
+    const ui: UiChoice | null = isHub ? { all: true } : frontend === 'nextjs' ? await askProjectxUi() : null
+    const icons: IconLibrary | null = isHub ? 'none' : frontend === 'nextjs' ? await askIcons(ui !== null) : null
     const port: number | null = frontend === 'nextjs' ? await askPort() : null
 
     // ---- Backend -----------------------------------------------------------
-    const backend = await askBackend()
+    const backend = isHub ? 'nestjs' : await askBackend()
     if (frontend === 'none' && backend === 'none') {
         p.cancel('Geen frontend en geen backend gekozen — niets te doen.')
         process.exit(0)
@@ -73,7 +87,12 @@ async function main(): Promise<void> {
     const backendPort: number | null = backend !== 'none' ? await askBackendPort(port ? [port] : []) : null
 
     // ---- Database (hoort bij de backend) -----------------------------------
-    const database: DatabaseChoice | null = backend !== 'none' ? await askDatabase(app.appName) : null
+    const database: DatabaseChoice | null = isHub
+        ? await askHubDatabase()
+        : backend !== 'none'
+          ? await askDatabase(app.appName)
+          : null
+    const hubAdmin: HubAdmin | null = isHub ? await askHubAdmin() : null
 
     // Helemaal als laatste: naar GitHub?
     const github = await askGithub(app.appName)
@@ -100,7 +119,14 @@ async function main(): Promise<void> {
                 : []),
             ...(port ? [`${pc.dim('Poort   ')}  ${pc.cyan(String(port))}${pc.dim('  in frontend/.env')}`] : []),
             `${pc.dim('Backend ')}  ${pc.cyan(backendLabel(backend, backendPort))}`,
-            ...(backend !== 'none' ? [`${pc.dim('Database')}  ${pc.cyan(databaseLabel(database))}`] : []),
+            ...(backend !== 'none'
+                ? [
+                      `${pc.dim('Database')}  ${pc.cyan(isHub && database ? hubDatabaseLabel(database) : databaseLabel(database))}`
+                  ]
+                : []),
+            ...(isHub && hubAdmin
+                ? [`${pc.dim('SSO-hub ')}  ${pc.cyan(`OIDC-server · beheerder ${hubAdmin.email}`)}`]
+                : []),
             `${pc.dim('GitHub  ')}  ${pc.cyan(githubLabel(github))}`,
             `${pc.dim('Manager ')}  ${pc.cyan(PACKAGE_MANAGER)}`
         ].join('\n'),
@@ -115,11 +141,26 @@ async function main(): Promise<void> {
 
     // ---- Installeren -------------------------------------------------------
     // Eerst de database: een probleem daar zien we liever vóór er iets geïnstalleerd is.
-    const dbSecrets = database ? await prepareDatabase(database) : null
+    const dbSecrets = database && !isHub ? await prepareDatabase(database) : null
+    const hubDbPassword = database && isHub ? await prepareHubDatabase(database) : null
 
     const apiUrl = backendPort ? `http://localhost:${backendPort}` : undefined
-    if (i18n && icons && port)
-        await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, { i18n, icons, app, port, ui, apiUrl })
+    // De hub-frontend praat met zichzelf (hij stuurt /api en /oidc door naar de backend).
+    const frontendApiUrl = isHub && port ? `http://localhost:${port}` : apiUrl
+    if (i18n && icons && port) {
+        await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, {
+            i18n,
+            icons,
+            app,
+            port,
+            ui,
+            apiUrl: frontendApiUrl
+        })
+        if (isHub && backendPort) {
+            applyHubFrontend(path.join(projectDir, FRONTEND_DIR), i18n, backendPort)
+            await formatAll(PACKAGE_MANAGER, path.join(projectDir, FRONTEND_DIR))
+        }
+    }
     if (i18n && backendPort)
         await scaffoldBackend(backend, projectDir, PACKAGE_MANAGER, {
             appName: app.appName,
@@ -127,6 +168,17 @@ async function main(): Promise<void> {
             frontendUrl: `http://localhost:${port ?? 3000}`,
             i18n
         })
+    let firstToken = ''
+    if (isHub && database && hubDbPassword && hubAdmin && i18n && backendPort && port) {
+        firstToken = await applyHubBackend(path.join(projectDir, BACKEND_DIR), PACKAGE_MANAGER, {
+            i18n,
+            db: database,
+            dbPassword: hubDbPassword,
+            admin: hubAdmin,
+            frontendUrl: `http://localhost:${port}`,
+            port: backendPort
+        })
+    }
     if (database && dbSecrets && backendPort && backend !== 'none')
         await setupDatabase(database, dbSecrets, projectDir, BACKEND_DIR, PACKAGE_MANAGER, {
             backend,
@@ -153,7 +205,7 @@ async function main(): Promise<void> {
         ...(frontend === 'nextjs' ? [{ dir: FRONTEND_DIR, run: `${PACKAGE_MANAGER} run dev` }] : []),
         ...(backend !== 'none' ? [{ dir: BACKEND_DIR, run: backendDevCommand(backend, PACKAGE_MANAGER) }] : [])
     ])
-    if (database) appendDatabaseReadme(projectDir, database, frontend === 'nextjs')
+    if (database && !isHub) appendDatabaseReadme(projectDir, database, frontend === 'nextjs')
     await pushToGithub(github, projectDir)
 
     // ---- Volgende stappen --------------------------------------------------
@@ -166,7 +218,12 @@ async function main(): Promise<void> {
             `cd ${BACKEND_DIR} && ${backendDevCommand(backend, PACKAGE_MANAGER)}   ${pc.dim(`http://localhost:${backendPort}/health`)}`
         )
     }
-    if (database) {
+    if (isHub && port) {
+        steps.push(`${pc.dim('Aanmelden:')} http://localhost:${port}/login   ${pc.dim(`(${hubAdmin?.email})`)}`)
+        steps.push(`${pc.dim('OIDC-issuer:')} http://localhost:${port}/oidc`)
+        if (firstToken)
+            steps.push(`${pc.dim('Eerste registratietoken:')} ${firstToken}   ${pc.dim('(ook in het beheerpaneel)')}`)
+    } else if (database) {
         steps.push(
             `cd ${BACKEND_DIR} && ${PACKAGE_MANAGER} run db:tenant:create -- "Mijn organisatie"   ${pc.dim('eerste tenant')}`
         )

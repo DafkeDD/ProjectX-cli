@@ -93,6 +93,93 @@ const ERRORS: Record<Locale, Record<ErrorKey, string>> = {
     }
 }
 
+/** Extra foutsleutels van de SSO-hub (inloggen, registreren, links). */
+export const HUB_ERROR_KEYS = [
+    'invalidCredentials',
+    'emailNotVerified',
+    'emailTaken',
+    'invalidEmail',
+    'weakPassword',
+    'linkInvalid',
+    'interactionExpired'
+] as const
+type HubErrorKey = (typeof HUB_ERROR_KEYS)[number]
+
+export const HUB_ERRORS: Record<Locale, Record<HubErrorKey, string>> = {
+    en: {
+        invalidCredentials: 'Email address or password is incorrect.',
+        emailNotVerified: 'Confirm your email address first — check your inbox.',
+        emailTaken: 'An account with this email address already exists.',
+        invalidEmail: 'This is not a valid email address.',
+        weakPassword: 'Use at least 10 characters, with a letter and a number.',
+        linkInvalid: 'This link is invalid or has expired.',
+        interactionExpired: 'This sign-in took too long. Go back to the app and try again.'
+    },
+    nl: {
+        invalidCredentials: 'E-mailadres of wachtwoord klopt niet.',
+        emailNotVerified: 'Bevestig eerst je e-mailadres — kijk in je mailbox.',
+        emailTaken: 'Er bestaat al een account met dit e-mailadres.',
+        invalidEmail: 'Dit is geen geldig e-mailadres.',
+        weakPassword: 'Gebruik minstens 10 tekens, met een letter en een cijfer.',
+        linkInvalid: 'Deze link is ongeldig of verlopen.',
+        interactionExpired: 'Het aanmelden duurde te lang. Ga terug naar de app en probeer opnieuw.'
+    },
+    fr: {
+        invalidCredentials: 'Adresse e-mail ou mot de passe incorrect.',
+        emailNotVerified: 'Confirmez d’abord votre adresse e-mail — vérifiez votre boîte de réception.',
+        emailTaken: 'Un compte existe déjà avec cette adresse e-mail.',
+        invalidEmail: 'Cette adresse e-mail n’est pas valide.',
+        weakPassword: 'Utilisez au moins 10 caractères, avec une lettre et un chiffre.',
+        linkInvalid: 'Ce lien n’est pas valide ou a expiré.',
+        interactionExpired: 'La connexion a pris trop de temps. Retournez à l’application et réessayez.'
+    },
+    de: {
+        invalidCredentials: 'E-Mail-Adresse oder Passwort ist falsch.',
+        emailNotVerified: 'Bestätige zuerst deine E-Mail-Adresse — schau in dein Postfach.',
+        emailTaken: 'Mit dieser E-Mail-Adresse gibt es bereits ein Konto.',
+        invalidEmail: 'Das ist keine gültige E-Mail-Adresse.',
+        weakPassword: 'Verwende mindestens 10 Zeichen, mit einem Buchstaben und einer Zahl.',
+        linkInvalid: 'Dieser Link ist ungültig oder abgelaufen.',
+        interactionExpired: 'Die Anmeldung hat zu lange gedauert. Geh zurück zur App und versuche es erneut.'
+    },
+    es: {
+        invalidCredentials: 'El correo electrónico o la contraseña no son correctos.',
+        emailNotVerified: 'Primero confirma tu correo electrónico: revisa tu bandeja de entrada.',
+        emailTaken: 'Ya existe una cuenta con este correo electrónico.',
+        invalidEmail: 'Este correo electrónico no es válido.',
+        weakPassword: 'Usa al menos 10 caracteres, con una letra y un número.',
+        linkInvalid: 'Este enlace no es válido o ha caducado.',
+        interactionExpired: 'El inicio de sesión tardó demasiado. Vuelve a la aplicación e inténtalo de nuevo.'
+    },
+    it: {
+        invalidCredentials: 'Indirizzo e-mail o password non corretti.',
+        emailNotVerified: 'Conferma prima il tuo indirizzo e-mail: controlla la posta in arrivo.',
+        emailTaken: 'Esiste già un account con questo indirizzo e-mail.',
+        invalidEmail: 'Questo indirizzo e-mail non è valido.',
+        weakPassword: 'Usa almeno 10 caratteri, con una lettera e un numero.',
+        linkInvalid: 'Questo link non è valido o è scaduto.',
+        interactionExpired: 'L’accesso ha richiesto troppo tempo. Torna all’app e riprova.'
+    },
+    pt: {
+        invalidCredentials: 'O e-mail ou a palavra-passe estão incorretos.',
+        emailNotVerified: 'Confirme primeiro o seu e-mail — verifique a sua caixa de entrada.',
+        emailTaken: 'Já existe uma conta com este e-mail.',
+        invalidEmail: 'Este e-mail não é válido.',
+        weakPassword: 'Use pelo menos 10 caracteres, com uma letra e um número.',
+        linkInvalid: 'Este link é inválido ou expirou.',
+        interactionExpired: 'O início de sessão demorou demasiado. Volte à aplicação e tente novamente.'
+    },
+    pl: {
+        invalidCredentials: 'Nieprawidłowy adres e-mail lub hasło.',
+        emailNotVerified: 'Najpierw potwierdź swój adres e-mail — sprawdź skrzynkę.',
+        emailTaken: 'Konto z tym adresem e-mail już istnieje.',
+        invalidEmail: 'To nie jest prawidłowy adres e-mail.',
+        weakPassword: 'Użyj co najmniej 10 znaków, w tym litery i cyfry.',
+        linkInvalid: 'Ten link jest nieprawidłowy lub wygasł.',
+        interactionExpired: 'Logowanie trwało zbyt długo. Wróć do aplikacji i spróbuj ponownie.'
+    }
+}
+
 export interface EnvValues {
     appName: string
     port: number
@@ -142,9 +229,13 @@ export const version: string = (
 `
 
 /** src/i18n/*.ts — talen, vertaalde foutmeldingen en de taal van een verzoek bepalen. */
-export function i18nFiles(locales: Locale[], defaultLocale: Locale): Record<string, string> {
+export function i18nFiles(locales: Locale[], defaultLocale: Locale, hub = false): Record<string, string> {
+    const keys: readonly string[] = hub ? [...ERROR_KEYS, ...HUB_ERROR_KEYS] : ERROR_KEYS
     const messages = locales
-        .map(l => `    ${l}: ${JSON.stringify(ERRORS[l], null, 4).replace(/\n/g, '\n    ')}`)
+        .map(l => {
+            const texts = hub ? { ...ERRORS[l], ...HUB_ERRORS[l] } : ERRORS[l]
+            return `    ${l}: ${JSON.stringify(texts, null, 4).replace(/\n/g, '\n    ')}`
+        })
         .join(',\n')
 
     return {
@@ -161,7 +252,7 @@ export const defaultLocale: Locale = '${defaultLocale}'
         'messages.ts': `import type { Locale } from './locales.js'
 
 /** Sleutels voor foutmeldingen. Een nieuwe sleutel: in ELKE taal hieronder. */
-export type ErrorKey = ${ERROR_KEYS.map(k => `'${k}'`).join(' | ')}
+export type ErrorKey = ${keys.map(k => `'${k}'`).join(' | ')}
 
 export const messages: Record<Locale, Record<ErrorKey, string>> = {
 ${messages}

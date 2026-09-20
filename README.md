@@ -28,6 +28,7 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 
 | #   | Stap     | Keuzes                                                                                       | Resultaat                        |
 | --- | -------- | -------------------------------------------------------------------------------------------- | -------------------------------- |
+| 0   | OIDC/SSO | geen · **nieuwe SSO-hub** (OIDC-server) · aansluiten op een bestaande hub (fase 3)           | —                                |
 | 1   | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark + iconen (keuze), of geen | `./frontend`                     |
 | 2   | Backend  | NestJS (standaard) of Node.js + Express 5, of geen                                           | `./backend`                      |
 | 3   | Database | PostgreSQL (multitenant) in Docker of lokaal, of geen — enkel met een backend                | `./backend/src/db`               |
@@ -235,6 +236,26 @@ migratie-runner.
 - Elke tenant-rol kan enkel met de eigen database verbinden; wachtwoorden van tenant-rollen staan versleuteld
   (AES-256-GCM) in de control-database. Tenants worden nooit automatisch verwijderd.
 
+### SSO-hub (OIDC-server)
+
+Kies je bovenaan _OIDC / SSO?_ → **Nieuwe OIDC-server (SSO-hub)**, dan maakt de CLI de hub waar al je apps op inloggen.
+Registreren kan enkel daar. Vast: Next.js + ProjectX-UI (alle componenten), NestJS + `oidc-provider`, PostgreSQL met één
+database `projectx_hub`. Gevraagd: talen, poorten, waar PostgreSQL draait (lokaal of Docker) en de eerste beheerder
+(e-mail, naam, wachtwoord).
+
+- **Backend** — OIDC op `/oidc` (authorization code + PKCE, refresh tokens, userinfo, introspectie, revocatie,
+  afmelden), `/api/auth/*` (registreren, e-mail bevestigen, inloggen, wachtwoord vergeten),
+  `/api/admin/registration-tokens` (aanmaken, tonen, wijzigen, vernieuwen, intrekken) en `/interaction/<uid>/*` voor het
+  inlogscherm. Wachtwoorden met scrypt, geheimen versleuteld met `HUB_SECRET_KEY`, sleutels in de database, auditlog in
+  `events`.
+- **Frontend** — `/login`, `/register`, `/verify`, `/forgot`, `/reset`, `/interaction/[uid]` (aanmelden bij een app +
+  organisatie kiezen), `/` (account en organisaties), `/admin/tokens` (beheer). Alles vertaald, enkel ProjectX-UI.
+  `/oidc`, `/api` en de knoppen van het inlogscherm gaan door naar de backend: de hub is één adres.
+- **Tokens** bevatten `org_id`, `tenant_key`, `org_name` en `org_role` (scope `organization`).
+- **Tabellen** (9): accounts, organizations, memberships, apps, licenses, registration_tokens, oidc_store, events,
+  settings.
+- Commando's in `./backend`: `npm run db:migrate`, `hub:admin`, `hub:token`, `hub:app`. Uitleg in `backend/docs/hub.md`.
+
 ## GitHub — altijd de laatste vraag
 
 1. _Wil je dit naar GitHub pushen?_
@@ -287,6 +308,7 @@ src/
 │  ├─ backend-status.ts  blok "Backend" op de startpagina
 │  ├─ backend/         NestJS / Express (index, nest, express, shared)
 │  ├─ database/        PostgreSQL: vragen, rollen, docker, templates van src/db
+│  ├─ hub/             SSO-hub: vragen, bestanden uit templates/hub toepassen
 │  └─ github.ts        pushen naar GitHub of de commando's tonen
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```

@@ -27,14 +27,16 @@ const eslintConfig = defineConfig([
 ${
     ui
         ? `    // ProjectX-UI (src/components/ui) wordt beheerd vanuit zijn eigen repo: de nieuwe
-    // React Compiler-regels daar als waarschuwing, zodat je ze ziet maar lint niet faalt.
+    // React Compiler-regels (en een paar andere) daar als waarschuwing, zodat je ze ziet maar lint niet faalt.
     // Oplossen hoort in github.com/DafkeDD/ProjectX-ui, daarna: npm run ui -- add --all --force
     {
         files: ['src/components/ui/**'],
         rules: {
             'react-hooks/immutability': 'warn',
             'react-hooks/refs': 'warn',
-            'react-hooks/set-state-in-effect': 'warn'
+            'react-hooks/set-state-in-effect': 'warn',
+            '@typescript-eslint/no-empty-object-type': 'warn',
+            'prefer-const': 'warn'
         }
     },
 `
