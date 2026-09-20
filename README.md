@@ -214,13 +214,13 @@ alle databases en rollen.
 Multitenant: één **control-database** per app en één **database per tenant** (organisatie). Geen ORM: kale `pg`, eigen
 migratie-runner.
 
-| Wat                      | Naam                          |
-| ------------------------ | ----------------------------- |
-| Control-database         | `<sleutel>_control`           |
-| Rol van de app           | `<sleutel>_app`               |
-| Rol die tenants aanmaakt | `<sleutel>_provisioner`       |
-| Database + rol / tenant  | `<sleutel>_t_<tenantKey>`     |
-| Docker-container         | `projectx-postgres` (gedeeld) |
+| Wat                      | Naam                           |
+| ------------------------ | ------------------------------ |
+| Control-database         | `<sleutel>_control`            |
+| Rol van de app           | `<sleutel>_app`                |
+| Rol die tenants aanmaakt | `<sleutel>_provisioner`        |
+| Database + rol / tenant  | `<sleutel>_t_<naam>_<sleutel>` |
+| Docker-container         | `projectx-postgres` (gedeeld)  |
 
 - **Docker** — één gedeelde container `projectx-postgres` (postgres 18, netwerk `projectx`, volume `projectx-pgdata`,
   enkel op `127.0.0.1`) voor al je projecten. De beheerder staat in `~/.projectx/postgres.json`, nooit in een project.

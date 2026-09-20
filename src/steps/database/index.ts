@@ -257,7 +257,7 @@ export async function askDatabase(appName: string, required = false): Promise<Da
         for (;;) {
             const appKey = orCancel(
                 await p.text({
-                    message: `Sleutel van de app ${pc.dim('(voorvoegsel van alle databases: <sleutel>_control, <sleutel>_t_…)')}`,
+                    message: `Sleutel van de app ${pc.dim('(voorvoegsel van alle databases: <sleutel>_control, <sleutel>_t_<praktijk>…)')}`,
                     placeholder: fallback,
                     defaultValue: fallback,
                     validate: v =>
@@ -280,7 +280,7 @@ export async function askDatabase(appName: string, required = false): Promise<Da
 export function databaseLabel(db: DatabaseChoice | null): string {
     if (!db) return 'geen'
     const where = db.mode === 'docker' ? `Docker (${CONTAINER})` : `lokaal (${db.admin.host}:${db.admin.port})`
-    return `PostgreSQL · ${where}${pc.dim(`  -> ${db.appKey}_control + ${db.appKey}_t_<tenant>`)}`
+    return `PostgreSQL · ${where}${pc.dim(`  -> ${db.appKey}_control + ${db.appKey}_t_<naam>_<sleutel>`)}`
 }
 
 /** Wacht tot PostgreSQL verbindingen aanneemt (een nieuwe container heeft even nodig). */
@@ -361,7 +361,7 @@ function envBlock(db: DatabaseChoice, secrets: DatabaseSecrets | null): string {
     const q = (v: string) => `"${v}"`
     return `
 # ---- Database (PostgreSQL, multitenant) — zie docs/database.md ----
-# Voorvoegsel van alle databases en rollen: ${db.appKey}_control, ${db.appKey}_t_<tenant>.
+# Voorvoegsel van alle databases en rollen: ${db.appKey}_control, ${db.appKey}_t_<naam>_<sleutel>.
 APP_KEY=${db.appKey}
 DB_HOST=${db.mode === 'docker' ? 'localhost' : db.admin.host}
 DB_PORT=${db.admin.port}
@@ -376,7 +376,7 @@ DB_SECRET_KEY=${secrets ? q(secrets.secretKey) : ''}
 
 const DB_AGENTS = (appKey: string) => `## Database — PostgreSQL, multitenant (zie docs/database.md)
 
-- Eén control-database \`${appKey}_control\` + één database per tenant \`${appKey}_t_<tenantKey>\`.
+- Eén control-database \`${appKey}_control\` + één database per tenant \`${appKey}_t_<naam>_<begin sleutel>\`.
 - Geen ORM of querybuilder: \`pg\` via \`src/db/sql.ts\` (\`db.many\`, \`db.one\`, \`db.query\`, \`db.tx\`). Altijd parameters
   (\`$1\`, \`$2\`), nooit waarden in de SQL-tekst plakken. Namen enkel via \`ident()\`.
 - Tenant-data: \`const db = await tenantDb(tenantKey)\` (\`src/db/pools.ts\`). Nooit zelf een \`pg.Pool\` aanmaken.
@@ -530,7 +530,7 @@ export function appendDatabaseReadme(projectDir: string, db: DatabaseChoice, fro
     const lines = [
         '## Database',
         '',
-        `PostgreSQL, multitenant: \`${db.appKey}_control\` + één database per tenant (\`${db.appKey}_t_<tenantKey>\`).`,
+        `PostgreSQL, multitenant: \`${db.appKey}_control\` + één database per tenant (\`${db.appKey}_t_<naam>_<begin sleutel>\`).`,
         'Alle uitleg: [backend/docs/database.md](backend/docs/database.md).',
         '',
         '```bash',

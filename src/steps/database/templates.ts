@@ -5,7 +5,7 @@
  * Namen (zie het plan):
  *   <appKey>_control            control-database (rol <appKey>_app)
  *   <appKey>_provisioner        rol die tenant-databases en -rollen aanmaakt
- *   <appKey>_t_<tenantKey>      database én rol per tenant
+ *   <appKey>_t_<naam>_<begin sleutel>  database én rol per tenant
  */
 
 /** src/env.ts met de database-instellingen erbij (vervangt de versie zonder database). */
@@ -351,8 +351,28 @@ const COLUMNS = 'id, tenant_key, name, db_name, db_role, status, schema_version,
 /** tenantKey = de eerste 12 tekens van de organisatie-UUID, zonder streepjes. */
 export const tenantKeyFor = (orgId: string) => orgId.replace(/-/g, '').slice(0, 12).toLowerCase()
 
-/** Database- én rolnaam van een tenant: <appKey>_t_<tenantKey>. */
-export const tenantDbName = (tenantKey: string) => \`\${env.appKey}_t_\${tenantKey}\`
+/** "Praktijk Jansen & Co" -> "praktijk_jansen_co" (voor in een databasenaam). */
+export function slugify(value: string): string {
+    const slug = value
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+    return slug || 'org'
+}
+
+/**
+ * Database- én rolnaam van een tenant: <appKey>_t_<naam>_<begin van de sleutel>,
+ * bv. paspoort_t_praktijk_jansen_c20cc7. De naam maakt ze herkenbaar, het
+ * stukje sleutel houdt ze uniek (PostgreSQL staat 63 tekens toe).
+ */
+export function tenantDbName(tenantKey: string, name: string): string {
+    const suffix = tenantKey.slice(0, 6)
+    const prefix = \`\${env.appKey}_t_\`
+    const room = 63 - prefix.length - suffix.length - 1
+    return \`\${prefix}\${slugify(name).slice(0, room).replace(/_+$/, '')}_\${suffix}\`
+}
 
 export const listTenants = () => control.many<Tenant & Record<string, unknown>>(\`select \${COLUMNS} from tenants order by created_at\`)
 
@@ -370,7 +390,6 @@ export const getTenant = (tenantKey: string) =>
 export async function provisionTenant(input: { orgId?: string; name: string }): Promise<Tenant> {
     const orgId = input.orgId ?? randomUUID()
     const tenantKey = tenantKeyFor(orgId)
-    const name = tenantDbName(tenantKey)
 
     const lock = await controlPool.connect()
     try {
@@ -384,13 +403,15 @@ export async function provisionTenant(input: { orgId?: string; name: string }): 
              on conflict (tenant_key) do update
                 set status = case when tenants.status = 'active' then 'active' else 'creating' end,
                     error = null, updated_at = now()\`,
-            [orgId, tenantKey, input.name, name, encrypt(password)]
+            [orgId, tenantKey, input.name, tenantDbName(tenantKey, input.name), encrypt(password)]
         )
-        const row = await control.one<{ db_password: string; status: string }>(
-            'select db_password, status from tenants where tenant_key = $1',
+        const row = await control.one<{ db_name: string; db_password: string; status: string }>(
+            'select db_name, db_password, status from tenants where tenant_key = $1',
             [tenantKey]
         )
         if (row?.status === 'active') return (await getTenant(tenantKey)) as Tenant
+        // Bestaat de rij al, dan houden we haar databasenaam (ook een oudere naamvorm).
+        const name = row!.db_name
 
         try {
             const secret = decrypt(row!.db_password)
@@ -549,7 +570,7 @@ create table tenants (
     id uuid primary key,                 -- id van de organisatie (in de hub)
     tenant_key text not null unique,     -- eerste 12 tekens van id, zonder streepjes
     name text not null,
-    db_name text not null unique,        -- <appKey>_t_<tenantKey>
+    db_name text not null unique,        -- <appKey>_t_<naam>_<begin sleutel>
     db_role text not null unique,        -- zelfde naam als de database
     db_password text not null,           -- versleuteld met DB_SECRET_KEY
     status text not null default 'creating'
@@ -592,7 +613,7 @@ Alles is zelf geschreven op de kale \`pg\`-driver — geen ORM, geen querybuilde
 | Control-database | \`${appKey}_control\` |
 | Rol van de app (control) | \`${appKey}_app\` |
 | Rol die tenants aanmaakt | \`${appKey}_provisioner\` |
-| Database én rol per tenant | \`${appKey}_t_<tenantKey>\` |
+| Database én rol per tenant | \`${appKey}_t_<naam>_<begin sleutel>\` (bv. \`${appKey}_t_praktijk_jansen_c20cc7\`) |
 ${docker ? '| Docker-container (gedeeld door alle projecten) | `projectx-postgres` (netwerk `projectx`, volume `projectx-pgdata`) |\n' : ''}
 \`tenantKey\` = de eerste 12 tekens van de organisatie-id, zonder streepjes.
 
@@ -644,7 +665,7 @@ await db.tx(async tx => {
 
 1. Advisory lock op de tenant: twee gelijktijdige pogingen wachten op elkaar.
 2. Rij in \`tenants\` met status \`creating\` (wachtwoord versleuteld).
-3. Rol \`${appKey}_t_<tenantKey>\` aanmaken (of het wachtwoord gelijkzetten).
+3. Rol \`${appKey}_t_<naam>_<begin sleutel>\` aanmaken (of het wachtwoord gelijkzetten).
 4. Database met dezelfde naam aanmaken als ze nog niet bestaat; \`CONNECT\` enkel voor die rol.
 5. Tenant-migraties draaien als die rol.
 6. Status \`active\` + schemaversie. Bij een fout: \`failed\` + de fout; opnieuw draaien gaat verder.
