@@ -228,17 +228,19 @@ export async function askDatabaseServer(): Promise<{ mode: DatabaseMode; admin: 
  * Vragen: welke database, waar draait ze, en de appKey.
  * Enkel met een backend (de database hoort bij de backend).
  */
-export async function askDatabase(appName: string): Promise<DatabaseChoice | null> {
-    const kind = orCancel(
-        await p.select<'postgres' | 'none'>({
-            message: 'Welke database wil je?',
-            initialValue: 'postgres',
-            options: [
-                { value: 'postgres', label: 'PostgreSQL', hint: 'multitenant: één database per organisatie' },
-                { value: 'none', label: 'Geen database' }
-            ]
-        })
-    )
+export async function askDatabase(appName: string, required = false): Promise<DatabaseChoice | null> {
+    const kind = required
+        ? 'postgres'
+        : orCancel(
+              await p.select<'postgres' | 'none'>({
+                  message: 'Welke database wil je?',
+                  initialValue: 'postgres',
+                  options: [
+                      { value: 'postgres', label: 'PostgreSQL', hint: 'multitenant: één database per organisatie' },
+                      { value: 'none', label: 'Geen database' }
+                  ]
+              })
+          )
     if (kind === 'none') return null
 
     const { mode, admin, newContainer } = await askDatabaseServer()

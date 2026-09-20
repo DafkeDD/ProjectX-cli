@@ -100,3 +100,8 @@ export const getMembership = (accountId: string, orgId: string) =>
          where m.account_id = $1 and m.org_id = $2`,
         [accountId, orgId]
     )
+
+/** Naam van een organisatie wijzigen. */
+export async function renameOrganization(orgId: string, name: string): Promise<void> {
+    await hub.query('update organizations set name = $2, updated_at = now() where id = $1', [orgId, name])
+}

@@ -1,0 +1,194 @@
+{
+    "en": {
+        "title": "Account",
+        "login": "Sign in",
+        "logout": "Sign out",
+        "switchOrganization": "Switch organization",
+        "signedOut": "Not signed in",
+        "signedOutDescription": "Sign in with your account from the SSO hub.",
+        "roles": {
+            "owner": "Owner",
+            "admin": "Admin",
+            "member": "Member"
+        },
+        "notice": {
+            "expired": "The sign-in took too long. Please try again.",
+            "tenant": "Your organization could not be set up. Try again later.",
+            "access_denied": "Sign-in was cancelled.",
+            "error": "Sign-in did not work. Please try again."
+        },
+        "dashboard": {
+            "title": "Dashboard",
+            "description": "This page is only for signed-in users of {organization}.",
+            "tenant": "Data of this organization is in database key {key}."
+        }
+    },
+    "nl": {
+        "title": "Account",
+        "login": "Aanmelden",
+        "logout": "Afmelden",
+        "switchOrganization": "Andere organisatie",
+        "signedOut": "Niet aangemeld",
+        "signedOutDescription": "Meld je aan met je account van de SSO-hub.",
+        "roles": {
+            "owner": "Eigenaar",
+            "admin": "Beheerder",
+            "member": "Lid"
+        },
+        "notice": {
+            "expired": "Het aanmelden duurde te lang. Probeer het opnieuw.",
+            "tenant": "Je organisatie kon niet klaargezet worden. Probeer het later opnieuw.",
+            "access_denied": "Het aanmelden is geannuleerd.",
+            "error": "Het aanmelden is niet gelukt. Probeer het opnieuw."
+        },
+        "dashboard": {
+            "title": "Dashboard",
+            "description": "Deze pagina is enkel voor aangemelde gebruikers van {organization}.",
+            "tenant": "De gegevens van deze organisatie staan in de database met sleutel {key}."
+        }
+    },
+    "fr": {
+        "title": "Compte",
+        "login": "Se connecter",
+        "logout": "Se déconnecter",
+        "switchOrganization": "Changer d'organisation",
+        "signedOut": "Non connecté",
+        "signedOutDescription": "Connectez-vous avec votre compte du hub SSO.",
+        "roles": {
+            "owner": "Propriétaire",
+            "admin": "Administrateur",
+            "member": "Membre"
+        },
+        "notice": {
+            "expired": "La connexion a pris trop de temps. Réessayez.",
+            "tenant": "Votre organisation n'a pas pu être préparée. Réessayez plus tard.",
+            "access_denied": "La connexion a été annulée.",
+            "error": "La connexion n'a pas abouti. Réessayez."
+        },
+        "dashboard": {
+            "title": "Tableau de bord",
+            "description": "Cette page est réservée aux utilisateurs connectés de {organization}.",
+            "tenant": "Les données de cette organisation sont dans la base {key}."
+        }
+    },
+    "de": {
+        "title": "Konto",
+        "login": "Anmelden",
+        "logout": "Abmelden",
+        "switchOrganization": "Organisation wechseln",
+        "signedOut": "Nicht angemeldet",
+        "signedOutDescription": "Melde dich mit deinem Konto im SSO-Hub an.",
+        "roles": {
+            "owner": "Inhaber",
+            "admin": "Administrator",
+            "member": "Mitglied"
+        },
+        "notice": {
+            "expired": "Die Anmeldung hat zu lange gedauert. Bitte erneut versuchen.",
+            "tenant": "Deine Organisation konnte nicht eingerichtet werden. Versuche es später erneut.",
+            "access_denied": "Die Anmeldung wurde abgebrochen.",
+            "error": "Die Anmeldung hat nicht geklappt. Bitte erneut versuchen."
+        },
+        "dashboard": {
+            "title": "Dashboard",
+            "description": "Diese Seite ist nur für angemeldete Benutzer von {organization}.",
+            "tenant": "Die Daten dieser Organisation liegen in der Datenbank mit Schlüssel {key}."
+        }
+    },
+    "es": {
+        "title": "Cuenta",
+        "login": "Iniciar sesión",
+        "logout": "Cerrar sesión",
+        "switchOrganization": "Cambiar de organización",
+        "signedOut": "No has iniciado sesión",
+        "signedOutDescription": "Inicia sesión con tu cuenta del hub SSO.",
+        "roles": {
+            "owner": "Propietario",
+            "admin": "Administrador",
+            "member": "Miembro"
+        },
+        "notice": {
+            "expired": "El inicio de sesión tardó demasiado. Inténtalo de nuevo.",
+            "tenant": "No se pudo preparar tu organización. Inténtalo más tarde.",
+            "access_denied": "Se canceló el inicio de sesión.",
+            "error": "El inicio de sesión no funcionó. Inténtalo de nuevo."
+        },
+        "dashboard": {
+            "title": "Panel",
+            "description": "Esta página es solo para usuarios con sesión de {organization}.",
+            "tenant": "Los datos de esta organización están en la base de datos {key}."
+        }
+    },
+    "it": {
+        "title": "Account",
+        "login": "Accedi",
+        "logout": "Esci",
+        "switchOrganization": "Cambia organizzazione",
+        "signedOut": "Non hai effettuato l'accesso",
+        "signedOutDescription": "Accedi con il tuo account dell'hub SSO.",
+        "roles": {
+            "owner": "Proprietario",
+            "admin": "Amministratore",
+            "member": "Membro"
+        },
+        "notice": {
+            "expired": "L'accesso ha impiegato troppo tempo. Riprova.",
+            "tenant": "Non è stato possibile preparare la tua organizzazione. Riprova più tardi.",
+            "access_denied": "L'accesso è stato annullato.",
+            "error": "L'accesso non è riuscito. Riprova."
+        },
+        "dashboard": {
+            "title": "Dashboard",
+            "description": "Questa pagina è solo per gli utenti autenticati di {organization}.",
+            "tenant": "I dati di questa organizzazione sono nel database {key}."
+        }
+    },
+    "pt": {
+        "title": "Conta",
+        "login": "Iniciar sessão",
+        "logout": "Terminar sessão",
+        "switchOrganization": "Mudar de organização",
+        "signedOut": "Sem sessão iniciada",
+        "signedOutDescription": "Inicie sessão com a sua conta do hub SSO.",
+        "roles": {
+            "owner": "Proprietário",
+            "admin": "Administrador",
+            "member": "Membro"
+        },
+        "notice": {
+            "expired": "O início de sessão demorou demasiado. Tente novamente.",
+            "tenant": "Não foi possível preparar a sua organização. Tente mais tarde.",
+            "access_denied": "O início de sessão foi cancelado.",
+            "error": "O início de sessão falhou. Tente novamente."
+        },
+        "dashboard": {
+            "title": "Painel",
+            "description": "Esta página é apenas para utilizadores com sessão de {organization}.",
+            "tenant": "Os dados desta organização estão na base de dados {key}."
+        }
+    },
+    "pl": {
+        "title": "Konto",
+        "login": "Zaloguj się",
+        "logout": "Wyloguj się",
+        "switchOrganization": "Zmień organizację",
+        "signedOut": "Nie zalogowano",
+        "signedOutDescription": "Zaloguj się kontem z huba SSO.",
+        "roles": {
+            "owner": "Właściciel",
+            "admin": "Administrator",
+            "member": "Członek"
+        },
+        "notice": {
+            "expired": "Logowanie trwało zbyt długo. Spróbuj ponownie.",
+            "tenant": "Nie udało się przygotować Twojej organizacji. Spróbuj później.",
+            "access_denied": "Logowanie zostało anulowane.",
+            "error": "Logowanie się nie powiodło. Spróbuj ponownie."
+        },
+        "dashboard": {
+            "title": "Panel",
+            "description": "Ta strona jest tylko dla zalogowanych użytkowników {organization}.",
+            "tenant": "Dane tej organizacji są w bazie o kluczu {key}."
+        }
+    }
+}

@@ -19,7 +19,7 @@ export const BACKEND_DIR = 'backend'
 export type Backend = 'nestjs' | 'express' | 'none'
 
 /** Vraag: welke backend? NestJS staat bovenaan. */
-export async function askBackend(): Promise<Backend> {
+export async function askBackend(allowNone = true): Promise<Backend> {
     return orCancel(
         await p.select<Backend>({
             message: 'Welke backend wil je?',
@@ -31,7 +31,7 @@ export async function askBackend(): Promise<Backend> {
                     hint: 'laatste versie · TypeScript · modules/controllers/services'
                 },
                 { value: 'express', label: 'Node.js + Express', hint: 'Express 5 · TypeScript · licht en eenvoudig' },
-                { value: 'none', label: 'Geen backend' }
+                ...(allowNone ? [{ value: 'none' as const, label: 'Geen backend' }] : [])
             ]
         })
     )

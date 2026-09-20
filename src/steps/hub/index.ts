@@ -21,29 +21,25 @@ export type Sso = 'none' | 'hub' | 'connect'
 
 /** Vraag bovenaan: login via een OIDC-server (SSO)? */
 export async function askSso(): Promise<Sso> {
-    for (;;) {
-        const sso = orCancel(
-            await p.select<Sso>({
-                message: 'OIDC / SSO?',
-                initialValue: 'none',
-                options: [
-                    { value: 'none', label: 'Geen', hint: 'een app zonder login' },
-                    {
-                        value: 'hub',
-                        label: 'Nieuwe OIDC-server (SSO-hub)',
-                        hint: 'registreren, inloggen, organisaties en beheer — eigen frontend + backend + database'
-                    },
-                    {
-                        value: 'connect',
-                        label: 'Aansluiten op een bestaande OIDC-server',
-                        hint: 'komt in fase 3'
-                    }
-                ]
-            })
-        )
-        if (sso !== 'connect') return sso
-        p.log.warn('Aansluiten op een bestaande hub komt in de volgende fase. Kies voorlopig Geen of een nieuwe hub.')
-    }
+    return orCancel(
+        await p.select<Sso>({
+            message: 'OIDC / SSO?',
+            initialValue: 'none',
+            options: [
+                { value: 'none', label: 'Geen', hint: 'een app zonder login' },
+                {
+                    value: 'hub',
+                    label: 'Nieuwe OIDC-server (SSO-hub)',
+                    hint: 'registreren, inloggen, organisaties en beheer — eigen frontend + backend + database'
+                },
+                {
+                    value: 'connect',
+                    label: 'Aansluiten op een bestaande OIDC-server',
+                    hint: 'inloggen via een hub die al draait — met een registratietoken'
+                }
+            ]
+        })
+    )
 }
 
 export interface HubAdmin {
@@ -300,6 +296,24 @@ export async function applyHubBackend(target: string, pm: PackageManager, o: Hub
     return firstToken
 }
 
+const HUB_PROXY_IMPORTS = `import { type NextRequest, NextResponse } from 'next/server'
+import createMiddleware from 'next-intl/middleware'`
+
+const HUB_PROXY_FUNCTION = `const intl = createMiddleware(routing)
+
+/** Pagina's waarvoor je aangemeld moet zijn. */
+const PROTECTED = [/^\\/$/, /^\\/admin(\\/|$)/]
+
+export default function proxy(request: NextRequest) {
+    // Geen sessie-cookie van de hub: meteen naar /login, zonder de backend te vragen.
+    // (Is de cookie er wel maar verlopen, dan stuurt de pagina zelf door na /api/auth/me.)
+    const { pathname } = request.nextUrl
+    if (PROTECTED.some(re => re.test(pathname)) && !request.cookies.has('px_session')) {
+        return NextResponse.redirect(new URL('/login', request.url))
+    }
+    return intl(request)
+}`
+
 const HUB_FRONTEND_AGENTS = `
 ## SSO-hub (frontend)
 
@@ -356,7 +370,8 @@ export function applyHubFrontend(target: string, i18n: I18nConfig, backendPort: 
         fs.writeFileSync(config, source, 'utf8')
     }
 
-    // proxy.ts (next-intl): /oidc en de knoppen van het inlogscherm niet aanraken.
+    // proxy.ts (next-intl): /oidc en de knoppen van het inlogscherm niet aanraken; zonder
+    // sessie-cookie meteen naar /login (zonder eerst de backend te vragen).
     const proxy = path.join(target, 'src', 'proxy.ts')
     let matcher = fs.readFileSync(proxy, 'utf8')
     matcher = matcher
@@ -365,7 +380,10 @@ export function applyHubFrontend(target: string, i18n: I18nConfig, backendPort: 
             '// Alles behalve /api/..., /trpc/...,',
             '// Alles behalve /api/..., /oidc/..., /trpc/..., /interaction/<uid>/<actie>,'
         )
-    if (!matcher.includes('oidc|trpc')) throw new Error('src/proxy.ts: matcher kon niet aangepast worden.')
+        .replace("import createMiddleware from 'next-intl/middleware'", HUB_PROXY_IMPORTS)
+        .replace('export default createMiddleware(routing)', HUB_PROXY_FUNCTION)
+    if (!matcher.includes('oidc|trpc') || !matcher.includes('px_session'))
+        throw new Error('src/proxy.ts kon niet aangepast worden.')
     fs.writeFileSync(proxy, matcher, 'utf8')
 
     // .env: de browser praat met de hub zelf; de server met de backend.

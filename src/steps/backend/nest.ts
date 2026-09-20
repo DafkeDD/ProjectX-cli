@@ -38,6 +38,32 @@ export class HealthController {
     }
 }
 `,
+        // nest new schrijft een test die 'supertest/types' importeert (bestaat niet in
+        // supertest 7) en "Hello World!" verwacht: vervangen door een test op /health.
+        'test/app.e2e-spec.ts': `import type { Server } from 'node:http'
+import type { INestApplication } from '@nestjs/common'
+import { Test, type TestingModule } from '@nestjs/testing'
+import request from 'supertest'
+import { AppModule } from './../src/app.module.js'
+
+describe('Health (e2e)', () => {
+    let app: INestApplication<Server>
+
+    beforeEach(async () => {
+        const moduleFixture: TestingModule = await Test.createTestingModule({ imports: [AppModule] }).compile()
+        app = moduleFixture.createNestApplication()
+        await app.init()
+    })
+
+    it('GET /health', () => {
+        return request(app.getHttpServer()).get('/health').expect(200)
+    })
+
+    afterEach(async () => {
+        await app.close()
+    })
+})
+`,
         'src/health/health.module.ts': `import { Module } from '@nestjs/common'
 import { HealthController } from './health.controller.js'
 

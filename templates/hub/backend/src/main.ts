@@ -7,6 +7,7 @@ import { I18nExceptionFilter } from './i18n/i18n-exception.filter.js'
 import { hubPool } from './db/hub.js'
 import { runMigrations } from './db/migrate.js'
 import { cleanupOidcStore } from './oidc/adapter.js'
+import { deliverPending } from './hub/delivery.js'
 import { createProvider } from './oidc/provider.js'
 
 async function bootstrap() {
@@ -33,6 +34,9 @@ async function bootstrap() {
     // Verlopen codes en sessies opruimen.
     await cleanupOidcStore()
     setInterval(() => void cleanupOidcStore().catch(() => {}), 3600_000).unref()
+
+    // Events naar de apps sturen die een webhook hebben.
+    setInterval(() => void deliverPending().catch(error => console.error('Events bezorgen:', error)), 30_000).unref()
 
     await app.listen(env.port)
     console.log(

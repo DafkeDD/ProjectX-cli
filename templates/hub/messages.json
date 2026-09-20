@@ -86,7 +86,10 @@
             "organizationsDescription": "The organizations you belong to, and your role in them.",
             "kind": "Type",
             "role": "Role",
-            "tenantKey": "Key"
+            "tenantKey": "Key",
+            "rename": "Rename",
+            "renameTitle": "Rename organization",
+            "renameDescription": "Apps connected to the hub are notified of the new name."
         },
         "admin": {
             "nav": "Registration tokens",
@@ -129,6 +132,11 @@
                 "expired": "Expired",
                 "usedUp": "Used up"
             }
+        },
+        "unavailable": {
+            "title": "Hub unavailable",
+            "description": "The server behind the hub is not responding. Try again in a moment.",
+            "retry": "Try again"
         }
     },
     "nl": {
@@ -218,7 +226,10 @@
             "organizationsDescription": "De organisaties waar je lid van bent, en je rol erin.",
             "kind": "Soort",
             "role": "Rol",
-            "tenantKey": "Sleutel"
+            "tenantKey": "Sleutel",
+            "rename": "Hernoemen",
+            "renameTitle": "Organisatie hernoemen",
+            "renameDescription": "Apps die op de hub aangesloten zijn, krijgen de nieuwe naam door."
         },
         "admin": {
             "nav": "Registratietokens",
@@ -261,6 +272,11 @@
                 "expired": "Verlopen",
                 "usedUp": "Opgebruikt"
             }
+        },
+        "unavailable": {
+            "title": "Hub niet bereikbaar",
+            "description": "De server achter de hub antwoordt niet. Probeer het zo meteen opnieuw.",
+            "retry": "Opnieuw proberen"
         }
     },
     "fr": {
@@ -350,7 +366,10 @@
             "organizationsDescription": "Les organisations dont vous êtes membre, et votre rôle.",
             "kind": "Type",
             "role": "Rôle",
-            "tenantKey": "Clé"
+            "tenantKey": "Clé",
+            "rename": "Renommer",
+            "renameTitle": "Renommer l'organisation",
+            "renameDescription": "Les applications connectées au hub reçoivent le nouveau nom."
         },
         "admin": {
             "nav": "Jetons d’inscription",
@@ -393,6 +412,11 @@
                 "expired": "Expiré",
                 "usedUp": "Épuisé"
             }
+        },
+        "unavailable": {
+            "title": "Hub indisponible",
+            "description": "Le serveur du hub ne répond pas. Réessayez dans un instant.",
+            "retry": "Réessayer"
         }
     },
     "de": {
@@ -482,7 +506,10 @@
             "organizationsDescription": "Die Organisationen, in denen du Mitglied bist, und deine Rolle darin.",
             "kind": "Art",
             "role": "Rolle",
-            "tenantKey": "Schlüssel"
+            "tenantKey": "Schlüssel",
+            "rename": "Umbenennen",
+            "renameTitle": "Organisation umbenennen",
+            "renameDescription": "Apps am Hub bekommen den neuen Namen mitgeteilt."
         },
         "admin": {
             "nav": "Registrierungstokens",
@@ -525,6 +552,11 @@
                 "expired": "Abgelaufen",
                 "usedUp": "Aufgebraucht"
             }
+        },
+        "unavailable": {
+            "title": "Hub nicht erreichbar",
+            "description": "Der Server hinter dem Hub antwortet nicht. Versuche es gleich noch einmal.",
+            "retry": "Erneut versuchen"
         }
     },
     "es": {
@@ -614,7 +646,10 @@
             "organizationsDescription": "Las organizaciones de las que eres miembro y tu rol en ellas.",
             "kind": "Tipo",
             "role": "Rol",
-            "tenantKey": "Clave"
+            "tenantKey": "Clave",
+            "rename": "Renombrar",
+            "renameTitle": "Renombrar organización",
+            "renameDescription": "Las apps conectadas al hub reciben el nuevo nombre."
         },
         "admin": {
             "nav": "Tokens de registro",
@@ -657,6 +692,11 @@
                 "expired": "Caducado",
                 "usedUp": "Agotado"
             }
+        },
+        "unavailable": {
+            "title": "Hub no disponible",
+            "description": "El servidor del hub no responde. Inténtalo de nuevo en un momento.",
+            "retry": "Reintentar"
         }
     },
     "it": {
@@ -746,7 +786,10 @@
             "organizationsDescription": "Le organizzazioni di cui fai parte e il tuo ruolo.",
             "kind": "Tipo",
             "role": "Ruolo",
-            "tenantKey": "Chiave"
+            "tenantKey": "Chiave",
+            "rename": "Rinomina",
+            "renameTitle": "Rinomina organizzazione",
+            "renameDescription": "Le app collegate all'hub ricevono il nuovo nome."
         },
         "admin": {
             "nav": "Token di registrazione",
@@ -789,6 +832,11 @@
                 "expired": "Scaduto",
                 "usedUp": "Esaurito"
             }
+        },
+        "unavailable": {
+            "title": "Hub non raggiungibile",
+            "description": "Il server dell'hub non risponde. Riprova tra un momento.",
+            "retry": "Riprova"
         }
     },
     "pt": {
@@ -878,7 +926,10 @@
             "organizationsDescription": "As organizações de que é membro e o seu papel nelas.",
             "kind": "Tipo",
             "role": "Papel",
-            "tenantKey": "Chave"
+            "tenantKey": "Chave",
+            "rename": "Mudar o nome",
+            "renameTitle": "Mudar o nome da organização",
+            "renameDescription": "As apps ligadas ao hub recebem o novo nome."
         },
         "admin": {
             "nav": "Tokens de registo",
@@ -921,6 +972,11 @@
                 "expired": "Expirado",
                 "usedUp": "Esgotado"
             }
+        },
+        "unavailable": {
+            "title": "Hub indisponível",
+            "description": "O servidor do hub não está a responder. Tente novamente dentro de momentos.",
+            "retry": "Tentar novamente"
         }
     },
     "pl": {
@@ -1010,7 +1066,10 @@
             "organizationsDescription": "Organizacje, do których należysz, i Twoja rola w nich.",
             "kind": "Rodzaj",
             "role": "Rola",
-            "tenantKey": "Klucz"
+            "tenantKey": "Klucz",
+            "rename": "Zmień nazwę",
+            "renameTitle": "Zmiana nazwy organizacji",
+            "renameDescription": "Aplikacje połączone z hubem otrzymają nową nazwę."
         },
         "admin": {
             "nav": "Tokeny rejestracyjne",
@@ -1053,6 +1112,11 @@
                 "expired": "Wygasły",
                 "usedUp": "Wykorzystany"
             }
+        },
+        "unavailable": {
+            "title": "Hub niedostępny",
+            "description": "Serwer huba nie odpowiada. Spróbuj ponownie za chwilę.",
+            "retry": "Spróbuj ponownie"
         }
     }
 }

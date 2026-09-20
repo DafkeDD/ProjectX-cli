@@ -1,4 +1,17 @@
-import { Body, ConflictException, Controller, Get, HttpCode, Post, Req, Res } from '@nestjs/common'
+import {
+    Body,
+    ConflictException,
+    Controller,
+    ForbiddenException,
+    Get,
+    HttpCode,
+    Param,
+    ParseUUIDPipe,
+    Patch,
+    Post,
+    Req,
+    Res
+} from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { env } from '../env.js'
 import { hub } from '../db/hub.js'
@@ -7,8 +20,16 @@ import { hashPassword, isEmail, isStrongPassword, verifyPassword } from '../auth
 import { assertNotLimited, clearFailures, recordFailure } from '../auth/rate-limit.js'
 import { endSession, startSession } from '../auth/session.js'
 import { resolveLocale } from '../i18n/i18n.js'
-import { createAccount, findAccountByEmail, getAccount, listOrganizations, type Account } from './accounts.js'
-import { recordEvent } from './events.js'
+import {
+    createAccount,
+    findAccountByEmail,
+    getAccount,
+    getMembership,
+    listOrganizations,
+    renameOrganization,
+    type Account
+} from './accounts.js'
+import { emitToApps, recordEvent } from './events.js'
 import { invalid, requireAccount, text } from './guards.js'
 import { sendMail } from './mail.js'
 
@@ -98,6 +119,28 @@ export class AuthController {
     async me(@Req() req: Request) {
         const account = await requireAccount(req)
         return { account, organizations: await listOrganizations(account.id) }
+    }
+
+    /** Organisatie hernoemen (eigenaar of beheerder); de apps krijgen een event. */
+    @Patch('organizations/:id')
+    async renameOrg(@Param('id', ParseUUIDPipe) id: string, @Body() body: Body, @Req() req: Request) {
+        const account = await requireAccount(req)
+        const membership = await getMembership(account.id, id)
+        if (!membership) throw new ForbiddenException()
+        if (membership.role === 'member') throw new ForbiddenException()
+
+        const name = text(body.name, 100)
+        if (!name) throw invalid('badRequest')
+
+        await renameOrganization(id, name)
+        await recordEvent({ type: 'organization.updated', actorId: account.id, orgId: id, data: { name } })
+        await emitToApps({
+            type: 'organization.updated',
+            orgId: id,
+            actorId: account.id,
+            data: { name, tenant_key: membership.tenant_key }
+        })
+        return { ...membership, name }
     }
 
     @Post('forgot')

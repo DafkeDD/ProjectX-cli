@@ -28,7 +28,7 @@ npx --allow-git=root github:DafkeDD/ProjectX-cli#v0.1.0
 
 | #   | Stap     | Keuzes                                                                                       | Resultaat                        |
 | --- | -------- | -------------------------------------------------------------------------------------------- | -------------------------------- |
-| 0   | OIDC/SSO | geen · **nieuwe SSO-hub** (OIDC-server) · aansluiten op een bestaande hub (fase 3)           | —                                |
+| 0   | OIDC/SSO | geen · **nieuwe SSO-hub** (OIDC-server) · **aansluiten op een bestaande hub**                | —                                |
 | 1   | Frontend | Next.js + Tailwind CSS + next-intl (talen naar keuze) + light/dark + iconen (keuze), of geen | `./frontend`                     |
 | 2   | Backend  | NestJS (standaard) of Node.js + Express 5, of geen                                           | `./backend`                      |
 | 3   | Database | PostgreSQL (multitenant) in Docker of lokaal, of geen — enkel met een backend                | `./backend/src/db`               |
@@ -256,6 +256,27 @@ database `projectx_hub`. Gevraagd: talen, poorten, waar PostgreSQL draait (lokaa
   settings.
 - Commando's in `./backend`: `npm run db:migrate`, `hub:admin`, `hub:token`, `hub:app`. Uitleg in `backend/docs/hub.md`.
 
+### Aansluiten op een bestaande hub
+
+Kies je _OIDC / SSO?_ → **Aansluiten op een bestaande OIDC-server**, dan vraagt de CLI het adres van de hub en een
+registratietoken (`pxr_...` uit het beheerpaneel van die hub). Hij test de hub, sluit de app aan (in de stijl van
+RFC 7591) en zet `OIDC_*` in `backend/.env`. Een backend en PostgreSQL zijn dan verplicht: de app heeft sessies en een
+database per organisatie nodig.
+
+- **Inloggen** — `GET /auth/login?returnTo=/pagina` stuurt naar de hub (authorization code + PKCE). Terug in
+  `/auth/callback` haalt de app de tokens op, controleert het id-token (handtekening, issuer, ontvanger, nonce), zet de
+  tenant klaar en start een eigen sessie (cookie `px_app`, tabel `sessions` in de control-database). Verder:
+  `/auth/switch` (andere organisatie), `/auth/logout` (ook bij de hub), `/auth/me`.
+- **Tenant bij de eerste login** — logt iemand van een organisatie voor het eerst in, dan maakt de app haar database aan
+  en meldt ze `tenant.ready` of `tenant.failed` aan de hub.
+- **Events** — de hub stuurt ze naar `POST /hub/events` met een handtekening (HMAC-SHA256 over `<tijd>.<body>`);
+  daarnaast haalt de app bij het opstarten en elke minuut op wat hij miste. Elk event wordt precies één keer verwerkt
+  (`processed_events`).
+- **Frontend** — alles via één adres: `/auth`, `/api` en `/health` gaan door naar de backend. Op de startpagina staat
+  een aanmeldblok, `/dashboard` is een voorbeeld van een beschermde pagina, en `getMe()` / `requireMe()` gebruik je in
+  server components.
+- Uitleg in het project: `backend/docs/sso.md`.
+
 ## GitHub — altijd de laatste vraag
 
 1. _Wil je dit naar GitHub pushen?_
@@ -309,6 +330,7 @@ src/
 │  ├─ backend/         NestJS / Express (index, nest, express, shared)
 │  ├─ database/        PostgreSQL: vragen, rollen, docker, templates van src/db
 │  ├─ hub/             SSO-hub: vragen, bestanden uit templates/hub toepassen
+│  ├─ sso/             aansluiten op een hub: vragen, registreren, templates/app-sso
 │  └─ github.ts        pushen naar GitHub of de commando's tonen
 └─ utils/              exec, prettier, progress-bar, prompt-helpers
 ```

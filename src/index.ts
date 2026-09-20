@@ -31,6 +31,16 @@ import {
     type DatabaseChoice
 } from './steps/database/index.js'
 import { applyHubBackend, applyHubFrontend, askHubAdmin, askSso, type HubAdmin } from './steps/hub/index.js'
+import {
+    applySsoBackend,
+    applySsoFrontend,
+    askHubConnection,
+    registerWithHub,
+    setupSso,
+    ssoLabel,
+    type HubConnection,
+    type RegisteredApp
+} from './steps/sso/index.js'
 import { formatAll } from './utils/prettier.js'
 import { orCancel } from './utils/prompt.js'
 import { isGlobalInstall } from './utils/guard.js'
@@ -62,6 +72,9 @@ async function main(): Promise<void> {
     // Bovenaan: wordt dit een SSO-hub (OIDC-server)?
     const sso = await askSso()
     const isHub = sso === 'hub'
+    const isConnected = sso === 'connect'
+    // Aansluiten op een bestaande hub: eerst kijken of ze bereikbaar is.
+    const connection: HubConnection | null = isConnected ? await askHubConnection() : null
     if (isHub)
         p.log.info(
             `SSO-hub: ${pc.cyan('Next.js + ProjectX-UI')} (frontend) · ${pc.cyan('NestJS + oidc-provider')} (backend) · ${pc.cyan('PostgreSQL')}`
@@ -77,7 +90,7 @@ async function main(): Promise<void> {
     const port: number | null = frontend === 'nextjs' ? await askPort() : null
 
     // ---- Backend -----------------------------------------------------------
-    const backend = isHub ? 'nestjs' : await askBackend()
+    const backend = isHub ? 'nestjs' : await askBackend(!isConnected)
     if (frontend === 'none' && backend === 'none') {
         p.cancel('Geen frontend en geen backend gekozen — niets te doen.')
         process.exit(0)
@@ -90,7 +103,7 @@ async function main(): Promise<void> {
     const database: DatabaseChoice | null = isHub
         ? await askHubDatabase()
         : backend !== 'none'
-          ? await askDatabase(app.appName)
+          ? await askDatabase(app.appName, isConnected)
           : null
     const hubAdmin: HubAdmin | null = isHub ? await askHubAdmin() : null
 
@@ -127,6 +140,7 @@ async function main(): Promise<void> {
             ...(isHub && hubAdmin
                 ? [`${pc.dim('SSO-hub ')}  ${pc.cyan(`OIDC-server · beheerder ${hubAdmin.email}`)}`]
                 : []),
+            ...(connection ? [`${pc.dim('SSO     ')}  ${pc.cyan(ssoLabel(connection))}`] : []),
             `${pc.dim('GitHub  ')}  ${pc.cyan(githubLabel(github))}`,
             `${pc.dim('Manager ')}  ${pc.cyan(PACKAGE_MANAGER)}`
         ].join('\n'),
@@ -141,12 +155,33 @@ async function main(): Promise<void> {
 
     // ---- Installeren -------------------------------------------------------
     // Eerst de database: een probleem daar zien we liever vóór er iets geïnstalleerd is.
+    // Aansluiten bij de hub: mislukt dat, dan stoppen we vóór er iets staat.
+    const publicUrl = port ? `http://localhost:${port}` : `http://localhost:${backendPort}`
+    let registered: RegisteredApp | null = null
+    if (connection && database && backendPort) {
+        const s = p.spinner()
+        s.start('App aansluiten bij de hub')
+        try {
+            registered = await registerWithHub(connection, {
+                appKey: database.appKey,
+                appName: app.appName,
+                publicUrl,
+                webhookUrl: `http://localhost:${backendPort}/hub/events`
+            })
+        } catch (error) {
+            s.stop('Aansluiten mislukt')
+            p.cancel(error instanceof Error ? error.message : String(error))
+            process.exit(1)
+        }
+        s.stop(`Aangesloten bij de hub ${pc.dim(`client_id ${registered.clientId}`)}`)
+    }
+
     const dbSecrets = database && !isHub ? await prepareDatabase(database) : null
     const hubDbPassword = database && isHub ? await prepareHubDatabase(database) : null
 
     const apiUrl = backendPort ? `http://localhost:${backendPort}` : undefined
     // De hub-frontend praat met zichzelf (hij stuurt /api en /oidc door naar de backend).
-    const frontendApiUrl = isHub && port ? `http://localhost:${port}` : apiUrl
+    const frontendApiUrl = (isHub || isConnected) && port ? `http://localhost:${port}` : apiUrl
     if (i18n && icons && port) {
         await scaffoldFrontend(frontend, projectDir, PACKAGE_MANAGER, {
             i18n,
@@ -158,6 +193,10 @@ async function main(): Promise<void> {
         })
         if (isHub && backendPort) {
             applyHubFrontend(path.join(projectDir, FRONTEND_DIR), i18n, backendPort)
+            await formatAll(PACKAGE_MANAGER, path.join(projectDir, FRONTEND_DIR))
+        }
+        if (isConnected && backendPort) {
+            applySsoFrontend(path.join(projectDir, FRONTEND_DIR), i18n, backendPort, ui !== null)
             await formatAll(PACKAGE_MANAGER, path.join(projectDir, FRONTEND_DIR))
         }
     }
@@ -186,6 +225,16 @@ async function main(): Promise<void> {
             backendDevCommand: backendDevCommand(backend, PACKAGE_MANAGER),
             frontendPort: frontend === 'nextjs' ? port : null
         })
+
+    // Inloggen via de hub: pas na de databaselaag (die zet src/db en migreert).
+    if (connection && registered && backendPort && backend !== 'none') {
+        await setupSso(projectDir, BACKEND_DIR, PACKAGE_MANAGER, {
+            backend,
+            issuer: connection.issuer,
+            app: registered,
+            publicUrl
+        })
+    }
 
     // ---- VS Code (projectmap) ----------------------------------------------
     const vscode = setupVsCode(projectDir, {
@@ -223,6 +272,9 @@ async function main(): Promise<void> {
         steps.push(`${pc.dim('OIDC-issuer:')} http://localhost:${port}/oidc`)
         if (firstToken)
             steps.push(`${pc.dim('Eerste registratietoken:')} ${firstToken}   ${pc.dim('(ook in het beheerpaneel)')}`)
+    } else if (isConnected && port) {
+        steps.push(`${pc.dim('Aanmelden:')} http://localhost:${port}   ${pc.dim('(via de hub)')}`)
+        steps.push(`${pc.dim('Beschermde pagina:')} http://localhost:${port}/dashboard`)
     } else if (database) {
         steps.push(
             `cd ${BACKEND_DIR} && ${PACKAGE_MANAGER} run db:tenant:create -- "Mijn organisatie"   ${pc.dim('eerste tenant')}`

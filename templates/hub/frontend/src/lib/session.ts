@@ -15,13 +15,17 @@ export interface Me {
     organizations: Organization[]
 }
 
-/** Het ingelogde account (server components); niet ingelogd -> /login. */
+/** Het ingelogde account (server components); niet ingelogd -> /login, backend onbereikbaar -> /unavailable. */
 export async function requireMe(): Promise<Me> {
     try {
         return await serverApi.get<Me>('/api/auth/me', { cache: 'no-store' })
     } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
             redirect({ href: '/login', locale: await getLocale() })
+        }
+        if (error instanceof ApiError && error.code === 'unreachable') {
+            console.error(`Backend van de hub niet bereikbaar: ${error.message}`)
+            redirect({ href: '/unavailable', locale: await getLocale() })
         }
         throw error
     }
