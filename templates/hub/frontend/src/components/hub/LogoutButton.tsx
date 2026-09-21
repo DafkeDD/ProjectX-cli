@@ -13,9 +13,14 @@ export default function LogoutButton() {
             variant='ghost'
             icon={<Icon name='logout' />}
             onClick={async () => {
-                await api.post('/api/auth/logout')
-                router.replace('/login')
+                // Mislukt de call (backend plat), dan gaan we toch naar het inlogscherm.
+                try {
+                    await api.post('/api/auth/logout')
+                } catch (error) {
+                    console.error('Afmelden mislukte bij de backend:', error)
+                }
                 router.refresh()
+                router.replace('/login')
             }}
         >
             {t('common.logout')}

@@ -15,12 +15,18 @@
             "expired": "The sign-in took too long. Please try again.",
             "tenant": "Your organization could not be set up. Try again later.",
             "access_denied": "Sign-in was cancelled.",
-            "error": "Sign-in did not work. Please try again."
+            "error": "Sign-in did not work. Please try again.",
+            "blocked": "Your organization no longer has access to this app."
         },
         "dashboard": {
             "title": "Dashboard",
             "description": "This page is only for signed-in users of {organization}.",
             "tenant": "Data of this organization is in database key {key}."
+        },
+        "unavailable": {
+            "title": "App unavailable",
+            "description": "The server behind this app is not responding. Try again in a moment.",
+            "retry": "Try again"
         }
     },
     "nl": {
@@ -39,12 +45,18 @@
             "expired": "Het aanmelden duurde te lang. Probeer het opnieuw.",
             "tenant": "Je organisatie kon niet klaargezet worden. Probeer het later opnieuw.",
             "access_denied": "Het aanmelden is geannuleerd.",
-            "error": "Het aanmelden is niet gelukt. Probeer het opnieuw."
+            "error": "Het aanmelden is niet gelukt. Probeer het opnieuw.",
+            "blocked": "Je organisatie heeft geen toegang meer tot deze app."
         },
         "dashboard": {
             "title": "Dashboard",
             "description": "Deze pagina is enkel voor aangemelde gebruikers van {organization}.",
             "tenant": "De gegevens van deze organisatie staan in de database met sleutel {key}."
+        },
+        "unavailable": {
+            "title": "App niet bereikbaar",
+            "description": "De server achter deze app antwoordt niet. Probeer het zo meteen opnieuw.",
+            "retry": "Opnieuw proberen"
         }
     },
     "fr": {
@@ -63,12 +75,18 @@
             "expired": "La connexion a pris trop de temps. Réessayez.",
             "tenant": "Votre organisation n'a pas pu être préparée. Réessayez plus tard.",
             "access_denied": "La connexion a été annulée.",
-            "error": "La connexion n'a pas abouti. Réessayez."
+            "error": "La connexion n'a pas abouti. Réessayez.",
+            "blocked": "Votre organisation n'a plus accès à cette application."
         },
         "dashboard": {
             "title": "Tableau de bord",
             "description": "Cette page est réservée aux utilisateurs connectés de {organization}.",
             "tenant": "Les données de cette organisation sont dans la base {key}."
+        },
+        "unavailable": {
+            "title": "Application indisponible",
+            "description": "Le serveur de cette application ne répond pas. Réessayez dans un instant.",
+            "retry": "Réessayer"
         }
     },
     "de": {
@@ -87,12 +105,18 @@
             "expired": "Die Anmeldung hat zu lange gedauert. Bitte erneut versuchen.",
             "tenant": "Deine Organisation konnte nicht eingerichtet werden. Versuche es später erneut.",
             "access_denied": "Die Anmeldung wurde abgebrochen.",
-            "error": "Die Anmeldung hat nicht geklappt. Bitte erneut versuchen."
+            "error": "Die Anmeldung hat nicht geklappt. Bitte erneut versuchen.",
+            "blocked": "Deine Organisation hat keinen Zugriff mehr auf diese App."
         },
         "dashboard": {
             "title": "Dashboard",
             "description": "Diese Seite ist nur für angemeldete Benutzer von {organization}.",
             "tenant": "Die Daten dieser Organisation liegen in der Datenbank mit Schlüssel {key}."
+        },
+        "unavailable": {
+            "title": "App nicht erreichbar",
+            "description": "Der Server hinter dieser App antwortet nicht. Versuche es gleich noch einmal.",
+            "retry": "Erneut versuchen"
         }
     },
     "es": {
@@ -111,12 +135,18 @@
             "expired": "El inicio de sesión tardó demasiado. Inténtalo de nuevo.",
             "tenant": "No se pudo preparar tu organización. Inténtalo más tarde.",
             "access_denied": "Se canceló el inicio de sesión.",
-            "error": "El inicio de sesión no funcionó. Inténtalo de nuevo."
+            "error": "El inicio de sesión no funcionó. Inténtalo de nuevo.",
+            "blocked": "Tu organización ya no tiene acceso a esta app."
         },
         "dashboard": {
             "title": "Panel",
             "description": "Esta página es solo para usuarios con sesión de {organization}.",
             "tenant": "Los datos de esta organización están en la base de datos {key}."
+        },
+        "unavailable": {
+            "title": "App no disponible",
+            "description": "El servidor de esta app no responde. Inténtalo de nuevo en un momento.",
+            "retry": "Reintentar"
         }
     },
     "it": {
@@ -135,12 +165,18 @@
             "expired": "L'accesso ha impiegato troppo tempo. Riprova.",
             "tenant": "Non è stato possibile preparare la tua organizzazione. Riprova più tardi.",
             "access_denied": "L'accesso è stato annullato.",
-            "error": "L'accesso non è riuscito. Riprova."
+            "error": "L'accesso non è riuscito. Riprova.",
+            "blocked": "La tua organizzazione non ha più accesso a questa app."
         },
         "dashboard": {
             "title": "Dashboard",
             "description": "Questa pagina è solo per gli utenti autenticati di {organization}.",
             "tenant": "I dati di questa organizzazione sono nel database {key}."
+        },
+        "unavailable": {
+            "title": "App non raggiungibile",
+            "description": "Il server di questa app non risponde. Riprova tra un momento.",
+            "retry": "Riprova"
         }
     },
     "pt": {
@@ -159,12 +195,18 @@
             "expired": "O início de sessão demorou demasiado. Tente novamente.",
             "tenant": "Não foi possível preparar a sua organização. Tente mais tarde.",
             "access_denied": "O início de sessão foi cancelado.",
-            "error": "O início de sessão falhou. Tente novamente."
+            "error": "O início de sessão falhou. Tente novamente.",
+            "blocked": "A sua organização já não tem acesso a esta app."
         },
         "dashboard": {
             "title": "Painel",
             "description": "Esta página é apenas para utilizadores com sessão de {organization}.",
             "tenant": "Os dados desta organização estão na base de dados {key}."
+        },
+        "unavailable": {
+            "title": "App indisponível",
+            "description": "O servidor desta app não está a responder. Tente novamente dentro de momentos.",
+            "retry": "Tentar novamente"
         }
     },
     "pl": {
@@ -183,12 +225,18 @@
             "expired": "Logowanie trwało zbyt długo. Spróbuj ponownie.",
             "tenant": "Nie udało się przygotować Twojej organizacji. Spróbuj później.",
             "access_denied": "Logowanie zostało anulowane.",
-            "error": "Logowanie się nie powiodło. Spróbuj ponownie."
+            "error": "Logowanie się nie powiodło. Spróbuj ponownie.",
+            "blocked": "Twoja organizacja nie ma już dostępu do tej aplikacji."
         },
         "dashboard": {
             "title": "Panel",
             "description": "Ta strona jest tylko dla zalogowanych użytkowników {organization}.",
             "tenant": "Dane tej organizacji są w bazie o kluczu {key}."
+        },
+        "unavailable": {
+            "title": "Aplikacja niedostępna",
+            "description": "Serwer tej aplikacji nie odpowiada. Spróbuj ponownie za chwilę.",
+            "retry": "Spróbuj ponownie"
         }
     }
 }

@@ -129,7 +129,7 @@ export const api = createApi()
 export const API_SERVER_TS = `import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import { createApi } from './api'
-import { env } from './env'
+import { serverEnv } from './env.server'
 
 export { ApiError, type ApiOptions } from './api'
 
@@ -152,7 +152,7 @@ export const serverApi = createApi(async () => {
         ...(locale ? { 'accept-language': locale } : {})
     }
     // Op de server: het interne adres (in Docker http://backend:<poort>).
-}, env.serverApiUrl)
+}, serverEnv.apiUrl)
 `
 
 const CHECK = `interface Health {

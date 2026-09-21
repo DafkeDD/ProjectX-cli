@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import { runOutput, runQuiet } from '../../utils/exec.js'
+import { protectFile } from '../../utils/guard.js'
 import { withProgress } from '../../utils/progress.js'
 import { orCancel } from '../../utils/prompt.js'
 import { formatAll } from '../../utils/prettier.js'
@@ -127,6 +128,12 @@ SMTP_PORT=1025
 SMTP_USER=
 SMTP_PASSWORD=
 MAIL_FROM="ProjectX Hub <no-reply@localhost>"
+# Links van e-mails ook in de log tonen (enkel voor ontwikkeling; nooit op een server).
+MAIL_DEBUG=1
+
+# Cookies krijgen automatisch Secure zodra FRONTEND_URL met https begint.
+# Wil je dat uitzetten (enkel voor een test), zet dit op 1.
+# ALLOW_INSECURE_COOKIES=0
 `
 
 const HUB_AGENTS = `## SSO-hub (OIDC-server) — zie docs/hub.md
@@ -242,6 +249,7 @@ export async function applyHubBackend(target: string, pm: PackageManager, o: Hub
             HUB_ENV(o.db, o.dbPassword, randomBytes(32).toString('base64')),
             'utf8'
         )
+        protectFile(path.join(target, '.env'))
         fs.appendFileSync(path.join(target, '.env.example'), HUB_ENV(o.db, null, null), 'utf8')
         const agents = path.join(target, 'AGENTS.md')
         fs.writeFileSync(
@@ -309,7 +317,10 @@ export default function proxy(request: NextRequest) {
     // (Is de cookie er wel maar verlopen, dan stuurt de pagina zelf door na /api/auth/me.)
     const { pathname } = request.nextUrl
     if (PROTECTED.some(re => re.test(pathname)) && !request.cookies.has('px_session')) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        const login = new URL('/login', request.url)
+        // Na het inloggen terug naar de pagina die gevraagd werd.
+        if (pathname !== '/') login.searchParams.set('next', pathname)
+        return NextResponse.redirect(login)
     }
     return intl(request)
 }`

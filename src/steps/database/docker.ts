@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { randomBytes } from 'node:crypto'
 import { runCapture, runQuiet } from '../../utils/exec.js'
 
 /**
@@ -77,30 +78,39 @@ export async function ensureContainer(admin: PgAdmin): Promise<void> {
         await runQuiet('docker', ['start', CONTAINER])
         return
     }
-    await runQuiet('docker', [
-        'run',
-        '-d',
-        '--name',
-        CONTAINER,
-        '--restart',
-        'unless-stopped',
-        '--network',
-        NETWORK,
-        // Enkel bereikbaar vanaf deze machine.
-        '-p',
-        `127.0.0.1:${admin.port}:5432`,
-        // postgres 18: het volume hoort op /var/lib/postgresql (niet .../data).
-        '-v',
-        `${VOLUME}:/var/lib/postgresql`,
-        '-e',
-        `POSTGRES_USER=${admin.user}`,
-        '-e',
-        `POSTGRES_PASSWORD=${admin.password}`,
-        IMAGE,
-        // Honderden tenants: ruim genoeg verbindingen.
-        '-c',
-        'max_connections=300'
-    ])
+    // Het wachtwoord via een tijdelijk bestand (0600), niet via -e: anders staat
+    // het in `ps` en blijft het in `docker inspect` staan.
+    const envFile = path.join(os.tmpdir(), `projectx-pg-${randomBytes(8).toString('hex')}.env`)
+    fs.writeFileSync(envFile, `POSTGRES_USER=${admin.user}\nPOSTGRES_PASSWORD=${admin.password}\n`, {
+        encoding: 'utf8',
+        mode: 0o600
+    })
+    try {
+        await runQuiet('docker', [
+            'run',
+            '-d',
+            '--name',
+            CONTAINER,
+            '--restart',
+            'unless-stopped',
+            '--network',
+            NETWORK,
+            // Enkel bereikbaar vanaf deze machine.
+            '-p',
+            `127.0.0.1:${admin.port}:5432`,
+            // postgres 18: het volume hoort op /var/lib/postgresql (niet .../data).
+            '-v',
+            `${VOLUME}:/var/lib/postgresql`,
+            '--env-file',
+            envFile,
+            IMAGE,
+            // Honderden tenants: ruim genoeg verbindingen.
+            '-c',
+            'max_connections=300'
+        ])
+    } finally {
+        fs.rmSync(envFile, { force: true })
+    }
 }
 
 export interface ComposeOptions {

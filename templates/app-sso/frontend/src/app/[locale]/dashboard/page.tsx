@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import AuthPanel from '@/components/auth/AuthPanel'
-import { requireMe } from '@/lib/session'
+import { getMe, noticeOf, requireMe } from '@/lib/session'
 
 export async function generateMetadata(): Promise<Metadata> {
     const t = await getTranslations('Auth')
@@ -12,9 +12,20 @@ export async function generateMetadata(): Promise<Metadata> {
  * Voorbeeld van een pagina waar je ingelogd voor moet zijn: is er geen sessie,
  * dan gaat de bezoeker meteen naar de SSO-hub en komt hij hier terug.
  */
-export default async function Dashboard() {
-    const me = await requireMe('/dashboard')
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ login?: string }> }) {
     const t = await getTranslations('Auth')
+    const notice = noticeOf((await searchParams).login)
+    // Met een melding (bv. een mislukte login) niet opnieuw doorsturen: dan zou
+    // de bezoeker in een lus tussen app en hub belanden.
+    const me = notice ? await getMe() : await requireMe('/dashboard')
+    if (!me) {
+        return (
+            <main className='mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-8'>
+                <h1 className='text-2xl font-semibold'>{t('dashboard.title')}</h1>
+                <AuthPanel returnTo='/dashboard' notice={notice} />
+            </main>
+        )
+    }
 
     return (
         <main className='mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-8'>

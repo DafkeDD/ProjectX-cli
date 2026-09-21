@@ -4,7 +4,7 @@ import ResetForm from '@/components/hub/ResetForm'
 
 export async function generateMetadata(): Promise<Metadata> {
     const t = await getTranslations('Hub')
-    return { title: t('reset.title') }
+    return { title: t('reset.title'), robots: { index: false } }
 }
 
 export default async function ResetPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {

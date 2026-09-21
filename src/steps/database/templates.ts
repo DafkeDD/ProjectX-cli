@@ -77,8 +77,20 @@ function wrap(target: Queryable, pool?: pg.Pool): Db {
         one: async <T extends Row>(text: string, params?: unknown[]) =>
             (await target.query<T>(text, params)).rows[0] ?? null,
         tx: async work => {
-            // Binnen een transactie: dezelfde verbinding hergebruiken.
-            if (!pool) return work(db)
+            // Al in een transactie: een savepoint, zodat een opgevangen fout
+            // de buitenste transactie niet in de war stuurt.
+            if (!pool) {
+                const name = \`sp_\${Math.random().toString(36).slice(2, 10)}\`
+                await target.query(\`savepoint \${name}\`)
+                try {
+                    const result = await work(db)
+                    await target.query(\`release savepoint \${name}\`)
+                    return result
+                } catch (error) {
+                    await target.query(\`rollback to savepoint \${name}\`).catch(() => {})
+                    throw error
+                }
+            }
             const client = await pool.connect()
             try {
                 await client.query('begin')
@@ -86,7 +98,8 @@ function wrap(target: Queryable, pool?: pg.Pool): Db {
                 await client.query('commit')
                 return result
             } catch (error) {
-                await client.query('rollback')
+                // Een mislukte rollback mag de echte fout niet verbergen.
+                await client.query('rollback').catch(() => {})
                 throw error
             } finally {
                 client.release()
@@ -98,14 +111,24 @@ function wrap(target: Queryable, pool?: pg.Pool): Db {
 
 export const createDb = (pool: pg.Pool): Db => wrap(pool, pool)
 
+/** Alles op één vaste verbinding (bv. een advisory lock die open moet blijven). */
+export const onClient = (client: pg.PoolClient | pg.Client): Db => wrap(client)
+
 /** Naam van een database of rol veilig maken voor SQL (enkel a-z, 0-9, _). */
 export function ident(name: string): string {
     if (!/^[a-z][a-z0-9_]{0,62}$/.test(name)) throw new Error(\`Ongeldige naam: \${name}\`)
     return \`"\${name}"\`
 }
 
-/** Tekstwaarde veilig in SQL zetten, voor de paar plaatsen waar geen $1 kan (CREATE ROLE ... PASSWORD). */
-export const literal = (value: string): string => \`'\${value.replace(/'/g, "''")}'\`
+/**
+ * Tekstwaarde in SQL zetten voor de paar plaatsen waar geen $1 kan
+ * (CREATE ROLE ... PASSWORD). Enkel voor waarden die wij zelf maken: alles
+ * buiten letters, cijfers, _ en - wordt geweigerd.
+ */
+export function literal(value: string): string {
+    if (!/^[A-Za-z0-9_-]{1,200}$/.test(value)) throw new Error('Ongeldige waarde voor SQL.')
+    return \`'\${value}'\`
+}
 `
 
 /** src/db/crypto.ts — AES-256-GCM voor de wachtwoorden van tenant-rollen. */
@@ -129,8 +152,11 @@ export function encrypt(text: string): string {
 export function decrypt(value: string): string {
     const [version, iv, tag, data] = value.split(':')
     if (version !== 'v1' || !iv || !tag || !data) throw new Error('Onbekend versleutelformaat')
+    const authTag = Buffer.from(tag, 'base64')
+    // Een ingekorte tag maakt vervalsing makkelijker: enkel de volle 16 bytes.
+    if (authTag.length !== 16) throw new Error('Onbekend versleutelformaat.')
     const decipher = createDecipheriv('aes-256-gcm', key(), Buffer.from(iv, 'base64'))
-    decipher.setAuthTag(Buffer.from(tag, 'base64'))
+    decipher.setAuthTag(authTag)
     return Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8')
 }
 
@@ -244,9 +270,16 @@ interface Entry {
     pool: pg.Pool
     db: Db
     lastUsed: number
+    /** Wanneer de status van de tenant laatst gecontroleerd is. */
+    checkedAt: number
 }
 
+/** Zo lang vertrouwen we de status van een tenant zonder ze opnieuw op te vragen. */
+const STATUS_MS = 10_000
+
 const pools = new Map<string, Entry>()
+/** Pools die op dit moment geopend worden (zodat er maar één per tenant komt). */
+const openings = new Map<string, Promise<Db>>()
 
 export class TenantUnavailableError extends Error {
     constructor(
@@ -281,9 +314,33 @@ export async function tenantDb(tenantKey: string): Promise<Db> {
     const cached = pools.get(tenantKey)
     if (cached) {
         cached.lastUsed = Date.now()
+        // De status van de tenant wordt regelmatig hercontroleerd: blokkeren
+        // (hier of in een ander proces) werkt anders pas als de pool vanzelf dichtgaat.
+        if (Date.now() - cached.checkedAt < STATUS_MS) return cached.db
+        const status = await tenantStatus(tenantKey)
+        if (status !== 'active') {
+            await closeTenantPool(tenantKey)
+            throw new TenantUnavailableError(tenantKey, status)
+        }
+        cached.checkedAt = Date.now()
         return cached.db
     }
 
+    // Twee gelijktijdige aanvragen mogen niet elk een pool openen.
+    const opening = openings.get(tenantKey)
+    if (opening) return opening
+    const promise = openEntry(tenantKey).finally(() => openings.delete(tenantKey))
+    openings.set(tenantKey, promise)
+    return promise
+}
+
+/** Status van een tenant volgens de control-database. */
+async function tenantStatus(tenantKey: string): Promise<string> {
+    const row = await control.one<{ status: string }>('select status from tenants where tenant_key = $1', [tenantKey])
+    return row?.status ?? 'unknown'
+}
+
+async function openEntry(tenantKey: string): Promise<Db> {
     const tenant = await control.one<{ db_name: string; db_role: string; db_password: string; status: string }>(
         'select db_name, db_role, db_password, status from tenants where tenant_key = $1',
         [tenantKey]
@@ -291,14 +348,15 @@ export async function tenantDb(tenantKey: string): Promise<Db> {
     if (!tenant) throw new TenantUnavailableError(tenantKey, 'unknown')
     if (tenant.status !== 'active') throw new TenantUnavailableError(tenantKey, tenant.status)
 
-    // Plaats maken: de langst ongebruikte pool sluiten.
-    if (pools.size >= MAX_POOLS) {
+    // Plaats maken: de langst ongebruikte pools sluiten.
+    while (pools.size >= MAX_POOLS) {
         const [oldest] = [...pools.entries()].sort((a, b) => a[1].lastUsed - b[1].lastUsed)
-        if (oldest) await closeTenantPool(oldest[0])
+        if (!oldest) break
+        await closeTenantPool(oldest[0])
     }
 
     const pool = openTenantPool(tenant)
-    const entry = { pool, db: createDb(pool), lastUsed: Date.now() }
+    const entry: Entry = { pool, db: createDb(pool), lastUsed: Date.now(), checkedAt: Date.now() }
     pools.set(tenantKey, entry)
     return entry.db
 }
@@ -330,7 +388,7 @@ import { control, controlPool, provisionPool } from './control.js'
 import { decrypt, encrypt, randomPassword } from './crypto.js'
 import { runMigrations } from './migrate.js'
 import { closeTenantPool, openTenantPool } from './pools.js'
-import { ident, literal } from './sql.js'
+import { ident, literal, onClient, type Db } from './sql.js'
 
 export type TenantStatus = 'creating' | 'active' | 'failed' | 'blocked' | 'archived'
 
@@ -376,8 +434,11 @@ export function tenantDbName(tenantKey: string, name: string): string {
 
 export const listTenants = () => control.many<Tenant & Record<string, unknown>>(\`select \${COLUMNS} from tenants order by created_at\`)
 
-export const getTenant = (tenantKey: string) =>
-    control.one<Tenant & Record<string, unknown>>(\`select \${COLUMNS} from tenants where tenant_key = $1\`, [tenantKey])
+export const getTenant = (tenantKey: string) => tenantRow(control, tenantKey)
+
+/** Zelfde als getTenant, maar op een meegegeven verbinding. */
+const tenantRow = (db: Db, tenantKey: string) =>
+    db.one<Tenant & Record<string, unknown>>(\`select \${COLUMNS} from tenants where tenant_key = $1\`, [tenantKey])
 
 /**
  * Maakt de database van een tenant aan (of werkt een halve aanmaak af).
@@ -391,13 +452,18 @@ export async function provisionTenant(input: { orgId?: string; name: string }): 
     const orgId = input.orgId ?? randomUUID()
     const tenantKey = tenantKeyFor(orgId)
 
+    // De lock-verbinding blijft open zolang we bezig zijn; alle control-queries
+    // hieronder lopen daarom OVER die verbinding. Anders vraagt elke query een
+    // tweede verbinding en loopt de pool vast zodra er enkele tenants tegelijk
+    // aangemaakt worden.
     const lock = await controlPool.connect()
+    const db = onClient(lock)
     try {
         await lock.query('select pg_advisory_lock(hashtext($1))', [\`tenant:\${tenantKey}\`])
 
         // 1. Rij in de control-DB (bestaande rij behoudt haar wachtwoord).
         const password = randomPassword()
-        await control.query(
+        await db.query(
             \`insert into tenants (id, tenant_key, name, db_name, db_role, db_password, status)
              values ($1, $2, $3, $4, $4, $5, 'creating')
              on conflict (tenant_key) do update
@@ -405,11 +471,15 @@ export async function provisionTenant(input: { orgId?: string; name: string }): 
                     error = null, updated_at = now()\`,
             [orgId, tenantKey, input.name, tenantDbName(tenantKey, input.name), encrypt(password)]
         )
-        const row = await control.one<{ db_name: string; db_password: string; status: string }>(
-            'select db_name, db_password, status from tenants where tenant_key = $1',
+        const row = await db.one<{ id: string; db_name: string; db_password: string; status: string }>(
+            'select id, db_name, db_password, status from tenants where tenant_key = $1',
             [tenantKey]
         )
-        if (row?.status === 'active') return (await getTenant(tenantKey)) as Tenant
+        // Zelfde sleutel maar een andere organisatie? Nooit dezelfde database delen.
+        if (row && row.id !== orgId) {
+            throw new Error(\`De sleutel \${tenantKey} is al in gebruik door een andere organisatie.\`)
+        }
+        if (row?.status === 'active') return (await tenantRow(db, tenantKey)) as Tenant
         // Bestaat de rij al, dan houden we haar databasenaam (ook een oudere naamvorm).
         const name = row!.db_name
 
@@ -457,18 +527,18 @@ export async function provisionTenant(input: { orgId?: string; name: string }): 
             }
 
             // 5. Klaar.
-            await control.query(
+            await db.query(
                 "update tenants set status = 'active', schema_version = $2, error = null, updated_at = now() where tenant_key = $1",
                 [tenantKey, schemaVersion]
             )
         } catch (error) {
-            await control.query(
+            await db.query(
                 "update tenants set status = 'failed', error = $2, updated_at = now() where tenant_key = $1",
                 [tenantKey, error instanceof Error ? error.message : String(error)]
             )
             throw error
         }
-        return (await getTenant(tenantKey)) as Tenant
+        return (await tenantRow(db, tenantKey)) as Tenant
     } finally {
         await lock.query('select pg_advisory_unlock(hashtext($1))', [\`tenant:\${tenantKey}\`]).catch(() => {})
         lock.release()
@@ -476,9 +546,9 @@ export async function provisionTenant(input: { orgId?: string; name: string }): 
 }
 
 /** Blokkeren: geen toegang meer, de database blijft staan (nooit automatisch verwijderen). */
-export async function setTenantStatus(tenantKey: string, status: 'active' | 'blocked'): Promise<void> {
+export async function setTenantStatus(tenantKey: string, status: 'active' | 'blocked' | 'archived'): Promise<void> {
     await control.query('update tenants set status = $2, updated_at = now() where tenant_key = $1', [tenantKey, status])
-    if (status === 'blocked') await closeTenantPool(tenantKey)
+    if (status !== 'active') await closeTenantPool(tenantKey)
 }
 
 /** Migreert alle actieve tenants (bij een release: npm run db:migrate). */
@@ -490,11 +560,20 @@ export async function migrateAllTenants(onProgress?: (tenantKey: string, version
         const pool = openTenantPool(tenant)
         try {
             const version = await runMigrations(pool, 'tenant')
-            await control.query('update tenants set schema_version = $2, updated_at = now() where tenant_key = $1', [
-                tenant.tenant_key,
-                version
-            ])
+            await control.query(
+                "update tenants set schema_version = $2, error = null, updated_at = now() where tenant_key = $1",
+                [tenant.tenant_key, version]
+            )
             onProgress?.(tenant.tenant_key, version)
+        } catch (error) {
+            // Eén tenant die faalt, mag de rest niet tegenhouden: noteren en door.
+            const message = error instanceof Error ? error.message : String(error)
+            await control.query('update tenants set error = $2, updated_at = now() where tenant_key = $1', [
+                tenant.tenant_key,
+                message
+            ])
+            onProgress?.(tenant.tenant_key, null)
+            console.error(\`Migratie mislukt voor tenant \${tenant.tenant_key}: \${message}\`)
         } finally {
             await pool.end()
         }

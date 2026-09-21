@@ -1,6 +1,6 @@
 {
     "name": "projectx-cli",
-    "version": "0.17.1",
+    "version": "0.18.0",
     "description": "Interactieve CLI die stap voor stap een project opzet in de huidige map.",
     "type": "module",
     "bin": {

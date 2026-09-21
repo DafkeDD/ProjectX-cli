@@ -1,5 +1,5 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req } from '@nestjs/common'
-import type { Request } from 'express'
+import { Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req, Res } from '@nestjs/common'
+import type { Request, Response } from 'express'
 import { recordEvent } from './events.js'
 import { invalid, requireAdmin, text } from './guards.js'
 import {
@@ -50,24 +50,29 @@ export class AdminTokensController {
 
     /** Aanmaken: het token komt één keer mee in het antwoord (later via "Tonen"). */
     @Post()
-    async create(@Body() body: Body, @Req() req: Request) {
-        const admin = await requireAdmin(req)
+    async create(@Body() body: Body = {}, @Req() req?: Request) {
+        const admin = await requireAdmin(req!)
         const { id, token } = await createToken(tokenInput(body), admin.id)
         await recordEvent({ type: 'registration_token.created', actorId: admin.id, data: { id } })
         return { ...(await getToken(id)), token }
     }
 
     @Patch(':id')
-    async update(@Param('id', ParseUUIDPipe) id: string, @Body() body: Body, @Req() req: Request) {
-        const admin = await requireAdmin(req)
+    async update(@Param('id', ParseUUIDPipe) id: string, @Body() body: Body = {}, @Req() req?: Request) {
+        const admin = await requireAdmin(req!)
         if (!(await updateToken(id, tokenInput(body)))) throw new NotFoundException()
         await recordEvent({ type: 'registration_token.updated', actorId: admin.id, data: { id } })
         return getToken(id)
     }
 
     /** Het volledige token tonen (staat in de auditlog). */
-    @Get(':id/reveal')
-    async reveal(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    @Post(':id/reveal')
+    async reveal(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        res.setHeader('cache-control', 'no-store')
         const admin = await requireAdmin(req)
         const token = await revealToken(id)
         if (!token) throw new NotFoundException()

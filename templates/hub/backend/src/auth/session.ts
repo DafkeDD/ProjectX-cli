@@ -28,7 +28,7 @@ export async function startSession(res: Response, accountId: string): Promise<vo
     res.cookie(SESSION_COOKIE, code, {
         httpOnly: true,
         sameSite: 'lax',
-        secure: env.production,
+        secure: env.secureCookies,
         path: '/',
         maxAge: SESSION_DAYS * 24 * 3600 * 1000
     })

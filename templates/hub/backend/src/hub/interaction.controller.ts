@@ -52,7 +52,7 @@ export class InteractionController {
 
     /** Inloggen met e-mail + wachtwoord, of doorgaan met de hub-sessie. */
     @Post('login')
-    async login(@Body() body: Body, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    async login(@Body() body: Body = {}, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
         const details = await load(req, res)
         if (details.prompt.name !== 'login') throw invalid('interactionExpired')
 
@@ -76,12 +76,14 @@ export class InteractionController {
 
     /** Organisatie kiezen = toestemming geven voor deze app, voor die organisatie. */
     @Post('confirm')
-    async confirm(@Body() body: Body, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    async confirm(@Body() body: Body = {}, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
         const details = await load(req, res)
         const accountId = details.session?.accountId
         if (details.prompt.name !== 'consent' || !accountId) throw invalid('interactionExpired')
 
         const orgId = typeof body.orgId === 'string' ? body.orgId : ''
+        // Geen geldige UUID: meteen 400, anders struikelt PostgreSQL erover.
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgId)) throw invalid('badRequest')
         const membership = await getMembership(accountId, orgId)
         if (!membership) throw invalid('badRequest')
 

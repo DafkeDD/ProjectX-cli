@@ -88,10 +88,27 @@ export const env = {
             ? `,
     /** Adres van de backend (NEXT_PUBLIC_API_URL). */
     apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
-    /** Adres van de backend vanaf de server (API_INTERNAL_URL, bv. in Docker) — anders apiUrl. */
-    serverApiUrl: process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'`
+`
             : ''
     }
+} as const
+`
+
+/**
+ * src/lib/env.server.ts — instellingen die ENKEL op de server mogen staan.
+ * Alles in env.ts belandt mee in de browserbundel zodra een client component
+ * het importeert; hier dus alles wat geheim is of intern.
+ */
+export const ENV_SERVER_TS = `import { env } from './env'
+
+/**
+ * ALLEEN voor server components, route handlers en server actions — nooit
+ * importeren in een bestand met 'use client'. Geheimen (API-sleutels, tokens)
+ * horen hier, niet in src/lib/env.ts.
+ */
+export const serverEnv = {
+    /** Adres van de backend vanaf de server (API_INTERNAL_URL, bv. in Docker) — anders env.apiUrl. */
+    apiUrl: process.env.API_INTERNAL_URL || env.apiUrl
 } as const
 `
 
@@ -125,6 +142,8 @@ export function setupEnv(target: string, { appName }: AppConfig, port: number, a
 
     fs.mkdirSync(path.join(target, 'src', 'lib'), { recursive: true })
     fs.writeFileSync(path.join(target, 'src', 'lib', 'env.ts'), envTs(Boolean(apiUrl)), 'utf8')
+    // Serverwaarden apart: die horen niet in de browserbundel.
+    if (apiUrl) fs.writeFileSync(path.join(target, 'src', 'lib', 'env.server.ts'), ENV_SERVER_TS, 'utf8')
 
     fs.mkdirSync(path.join(target, 'scripts'), { recursive: true })
     fs.writeFileSync(path.join(target, 'scripts', 'next.mjs'), NEXT_RUNNER, 'utf8')

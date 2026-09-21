@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UnauthorizedException } from '@nestjs/common'
+import { Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { finishLogin, logout, sessionOf, startLogin } from './flow.js'
 import { meOf } from './sessions.js'
@@ -27,8 +27,8 @@ export class AuthController {
         await finishLogin(req, res)
     }
 
-    /** GET /auth/logout — afmelden, hier en bij de hub. */
-    @Get('logout')
+    /** POST /auth/logout — afmelden, hier en bij de hub (POST: niet van buitenaf te forceren). */
+    @Post('logout')
     async logout(@Req() req: Request, @Res() res: Response) {
         await logout(req, res)
     }

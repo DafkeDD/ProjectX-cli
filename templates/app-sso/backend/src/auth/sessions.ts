@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import type { Request, Response } from 'express'
 import { env } from '../env.js'
 import { control } from '../db/control.js'
+import type { Db } from '../db/sql.js'
 import { decrypt, encrypt } from '../db/crypto.js'
 import { refreshTokens, type Claims, type Tokens } from './oidc.js'
 
@@ -73,7 +74,7 @@ export async function startSession(res: Response, claims: Claims, tokens: Tokens
             claims.org_role,
             claims.email,
             claims.name,
-            tokens.id_token,
+            encrypt(tokens.id_token),
             tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
             encrypt(tokens.access_token),
             new Date(Date.now() + tokens.expires_in * 1000),
@@ -83,14 +84,18 @@ export async function startSession(res: Response, claims: Claims, tokens: Tokens
     res.cookie(SESSION_COOKIE, value, {
         httpOnly: true,
         sameSite: 'lax',
-        secure: env.production,
+        secure: env.secureCookies,
         path: '/',
         maxAge: SESSION_DAYS * 24 * 3600 * 1000
     })
     return row!
 }
 
-/** De sessie van dit verzoek (of null als er geen geldige is). */
+/**
+ * De sessie van dit verzoek (of null als er geen geldige is). Is het access
+ * token verlopen, dan vernieuwen we het bij de hub: weigert die (afgemeld,
+ * seat ingetrokken, account geblokkeerd), dan is de sessie hier ook gedaan.
+ */
 export async function getSession(req: Request): Promise<Session | null> {
     const value = readCookie(req, SESSION_COOKIE)
     if (!value || value.length < 20 || value.length > 100) return null
@@ -99,6 +104,8 @@ export async function getSession(req: Request): Promise<Session | null> {
         [hash(value)]
     )
     if (!session) return null
+    // Zonder refresh token kunnen we niets navragen; dan geldt de vervaldatum hierboven.
+    if (session.refresh_token && !(await accessTokenOf(session))) return null
     await control.query('update sessions set last_seen_at = now() where id = $1', [session.id])
     return session
 }
@@ -122,7 +129,7 @@ export async function accessTokenOf(session: Session): Promise<string | null> {
                 encrypt(tokens.access_token),
                 new Date(Date.now() + tokens.expires_in * 1000),
                 tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-                tokens.id_token ?? null
+                tokens.id_token ? encrypt(tokens.id_token) : null
             ]
         )
         return tokens.access_token
@@ -142,17 +149,17 @@ export function clearSessionCookie(res: Response): void {
 }
 
 /** Alle sessies van een gebruiker sluiten (bv. na een event van de hub). */
-export async function deleteSessionsFor(accountId: string, orgId?: string | null): Promise<number> {
-    const result = await control.query(
-        `delete from sessions where account_id = $1 and ($2::uuid is null or org_id = $2)`,
-        [accountId, orgId ?? null]
-    )
+export async function deleteSessionsFor(accountId: string, orgId?: string | null, db: Db = control): Promise<number> {
+    const result = await db.query(`delete from sessions where account_id = $1 and ($2::uuid is null or org_id = $2)`, [
+        accountId,
+        orgId ?? null
+    ])
     return result.rowCount ?? 0
 }
 
 /** Alle sessies van een organisatie sluiten. */
-export async function deleteSessionsOfOrg(orgId: string): Promise<number> {
-    const result = await control.query('delete from sessions where org_id = $1', [orgId])
+export async function deleteSessionsOfOrg(orgId: string, db: Db = control): Promise<number> {
+    const result = await db.query('delete from sessions where org_id = $1', [orgId])
     return result.rowCount ?? 0
 }
 

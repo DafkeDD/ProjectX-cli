@@ -45,14 +45,17 @@ export default function RegisterForm() {
                     </Button>
                 }
             >
+                {error && <Alert tone='red'>{error.message}</Alert>}
                 {resent && <Alert tone='green'>{t('register.resent')}</Alert>}
                 <Button
                     variant='secondary'
                     block
                     loading={pending}
                     onClick={async () => {
-                        await run(() => api.post('/api/auth/resend', { email: sentTo }))
-                        setResent(true)
+                        // Enkel bevestigen als het echt gelukt is.
+                        if ((await run(() => api.post('/api/auth/resend', { email: sentTo }))) !== undefined) {
+                            setResent(true)
+                        }
                     }}
                 >
                     {t('register.resend')}

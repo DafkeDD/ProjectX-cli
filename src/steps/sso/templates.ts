@@ -3,8 +3,13 @@
 /** Blok dat in backend/src/env.ts komt (na de database). */
 export const ENV_OIDC = `,
 
-    /** Draait de app in productie? (veilige cookies) */
+    /** Draait de app in productie? */
     production: process.env.NODE_ENV === 'production',
+    /**
+     * Cookies krijgen \`Secure\` zodra de app op https draait — dus ook als
+     * NODE_ENV niet gezet is. Op http (ontwikkeling) kan het niet.
+     */
+    secureCookies: publicUrl.startsWith('https://') && process.env.ALLOW_INSECURE_COOKIES !== '1',
 
     /** SSO-hub: registreren en inloggen gebeuren daar, niet in deze app. */
     oidc: {
@@ -38,6 +43,9 @@ OIDC_CLIENT_SECRET="${withSecrets ? input.clientSecret : ''}"
 HUB_WEBHOOK_SECRET="${withSecrets ? input.webhookSecret : ''}"
 # Publiek adres van deze app: daar stuurt de hub de browser terug.
 PUBLIC_URL="${input.publicUrl}"
+# Cookies krijgen automatisch Secure zodra PUBLIC_URL met https begint.
+# Wil je dat uitzetten (enkel voor een test), zet dit op 1.
+# ALLOW_INSECURE_COOKIES=0
 `
 
 /** next.config.ts van de frontend: alles via één adres. */

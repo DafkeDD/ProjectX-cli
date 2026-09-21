@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import { orCancel } from '../../utils/prompt.js'
+import { protectFile } from '../../utils/guard.js'
 import { runQuiet } from '../../utils/exec.js'
 import { withProgress } from '../../utils/progress.js'
 import { formatAll } from '../../utils/prettier.js'
@@ -231,6 +232,7 @@ export function applySsoBackend(target: string, options: SsoBackendOptions): voi
     // .env + uitleg + regels.
     const values = { ...options.app, issuer: options.issuer, publicUrl: options.publicUrl }
     append(path.join(target, '.env'), envBlock(values, true))
+    protectFile(path.join(target, '.env'))
     append(path.join(target, '.env.example'), envBlock(values, false))
     fs.mkdirSync(path.join(target, 'docs'), { recursive: true })
     fs.writeFileSync(
@@ -274,7 +276,7 @@ export function applySsoFrontend(target: string, i18n: I18nConfig, backendPort: 
 
     // Met ProjectX-UI de UI-versie, anders de gewone; de andere weg.
     const auth = path.join(target, 'src', 'components', 'auth')
-    for (const name of ['AuthPanel', 'LinkButton']) {
+    for (const name of ['AuthPanel', 'LinkButton', 'LogoutForm']) {
         const plain = path.join(auth, `${name}.plain.tsx`)
         if (!ui) fs.copyFileSync(plain, path.join(auth, `${name}.tsx`))
         fs.rmSync(plain, { force: true })

@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Headers, Post, Query, Res } from '@nestjs/common'
-import type { Response } from 'express'
+import { Body, Controller, Get, Headers, Post, Query, Req, Res } from '@nestjs/common'
+import type { Request, Response } from 'express'
+import { limitByIp } from '../auth/rate-limit.js'
 import { eventsForApp, recordEvent } from './events.js'
-import { appByCredentials, checkRedirectUris, registerApp, type App } from './apps.js'
+import { appByCredentials, checkRedirectUris, checkWebhookUrl, registerApp, type App } from './apps.js'
 
 type Body = Record<string, unknown>
 
@@ -38,19 +39,21 @@ export class AppsController {
     @Post('apps/register')
     async register(
         @Headers('authorization') authorization: string | undefined,
-        @Body() body: Body,
-        @Res() res: Response
+        @Body() body: Body = {},
+        @Req() req?: Request,
+        @Res() res?: Response
     ) {
+        limitByIp(req!, 'app-register', 10, 3600_000)
         const token = bearer(authorization)
-        if (!token) return res.status(401).json({ error: 'invalidToken' })
+        if (!token) return res!.status(401).json({ error: 'invalidToken' })
 
         const appKey = str(body.client_id ?? body.app_key, 20)
         const name = str(body.client_name, 100)
         const redirectUris = checkRedirectUris(body.redirect_uris)
         const logoutUris = body.post_logout_redirect_uris ? checkRedirectUris(body.post_logout_redirect_uris) : []
-        const webhookUrl = body.webhook_url ? checkRedirectUris([body.webhook_url])?.[0] : null
-        if (!appKey || !name || !redirectUris || !logoutUris || webhookUrl === undefined)
-            return res.status(400).json({ error: 'invalidMetadata' })
+        const webhookUrl = body.webhook_url ? checkWebhookUrl(body.webhook_url) : null
+        if (!appKey || !name || !redirectUris || !logoutUris || (body.webhook_url && !webhookUrl))
+            return res!.status(400).json({ error: 'invalidMetadata' })
 
         const result = await registerApp({
             token,
@@ -60,12 +63,12 @@ export class AppsController {
             postLogoutRedirectUris: logoutUris,
             webhookUrl: webhookUrl ?? null
         })
-        if (result === 'invalidToken') return res.status(403).json({ error: 'invalidToken' })
-        if (result === 'appKeyTaken') return res.status(409).json({ error: 'appKeyTaken' })
-        if (result === 'invalidMetadata') return res.status(400).json({ error: 'invalidMetadata' })
+        if (result === 'invalidToken') return res!.status(403).json({ error: 'invalidToken' })
+        if (result === 'appKeyTaken') return res!.status(409).json({ error: 'appKeyTaken' })
+        if (result === 'invalidMetadata') return res!.status(400).json({ error: 'invalidMetadata' })
 
         await recordEvent({ type: 'app.registered', appId: result.clientId, data: { name } })
-        return res.status(201).json({
+        return res!.status(201).json({
             client_id: result.clientId,
             client_secret: result.clientSecret,
             client_id_issued_at: Math.floor(Date.now() / 1000),
@@ -85,6 +88,7 @@ export class AppsController {
         const app = await basicApp(authorization)
         if (!app) return res.status(401).json({ error: 'invalidClient' })
         const max = Math.min(Math.max(Number(limit) || 100, 1), 500)
+        res.setHeader('cache-control', 'no-store')
         return res.json(await eventsForApp(app.id, str(after, 40), max))
     }
 
@@ -96,11 +100,12 @@ export class AppsController {
         @Res() res: Response
     ) {
         const app = await basicApp(authorization)
-        if (!app) return res.status(401).json({ error: 'invalidClient' })
+        if (!app) return res!.status(401).json({ error: 'invalidClient' })
 
         const orgId = str(body.org_id, 40)
+        const isUuid = orgId ? /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orgId) : false
         const status = body.status === 'ready' || body.status === 'failed' ? body.status : null
-        if (!orgId || !status) return res.status(400).json({ error: 'invalidMetadata' })
+        if (!orgId || !isUuid || !status) return res!.status(400).json({ error: 'invalidMetadata' })
 
         await recordEvent({
             type: `tenant.${status}`,
@@ -108,6 +113,6 @@ export class AppsController {
             orgId,
             data: { message: str(body.message, 500) ?? undefined }
         })
-        return res.status(204).send()
+        return res!.status(204).send()
     }
 }

@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import { env } from '../env.js'
 import { decrypt, encrypt } from '../db/crypto.js'
-import { ensureTenant } from '../tenant/ensure.js'
+import { ensureTenant, TenantBlockedError } from '../tenant/ensure.js'
 import { authorizationUrl, endSessionUrl, exchangeCode, randomString, verifyIdToken } from './oidc.js'
 import { clearSessionCookie, deleteSession, getSession, readCookie, startSession, type Session } from './sessions.js'
 
@@ -28,6 +28,13 @@ export function safeReturnTo(value: unknown): string {
 
 const frontend = (path: string) => `${env.frontendUrl}${path}`
 
+/** Terug naar de app met een melding, ook als returnTo zelf al een ? bevat. */
+function back(returnTo: string, notice: string): string {
+    const url = new URL(returnTo, env.frontendUrl)
+    url.searchParams.set('login', notice)
+    return `${env.frontendUrl}${url.pathname}${url.search}`
+}
+
 /** Stap 1: naar de hub. `prompt: 'consent'` laat een andere organisatie kiezen. */
 export async function startLogin(req: Request, res: Response, prompt?: 'consent'): Promise<void> {
     const login: LoginState = {
@@ -39,7 +46,7 @@ export async function startLogin(req: Request, res: Response, prompt?: 'consent'
     res.cookie(LOGIN_COOKIE, encrypt(JSON.stringify(login)), {
         httpOnly: true,
         sameSite: 'lax',
-        secure: env.production,
+        secure: env.secureCookies,
         path: '/',
         maxAge: LOGIN_MINUTES * 60 * 1000
     })
@@ -66,7 +73,7 @@ export async function finishLogin(req: Request, res: Response): Promise<void> {
 
     // De gebruiker heeft geannuleerd of de hub geeft een fout.
     if (typeof req.query.error === 'string') {
-        return void res.redirect(frontend(`${login.returnTo}?login=${encodeURIComponent(req.query.error)}`))
+        return void res.redirect(back(login.returnTo, req.query.error))
     }
     if (req.query.state !== login.state || typeof req.query.code !== 'string') {
         return void res.redirect(frontend('/?login=expired'))
@@ -79,8 +86,9 @@ export async function finishLogin(req: Request, res: Response): Promise<void> {
     try {
         await ensureTenant(claims)
     } catch (error) {
+        if (error instanceof TenantBlockedError) return void res.redirect(back(login.returnTo, 'blocked'))
         console.error('Tenant aanmaken mislukt:', error)
-        return void res.redirect(frontend(`${login.returnTo}?login=tenant`))
+        return void res.redirect(back(login.returnTo, 'tenant'))
     }
 
     // Was er al een sessie (bv. bij het wisselen van organisatie)? Die vervalt nu.
@@ -97,7 +105,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
     clearSessionCookie(res)
     if (!session) return void res.redirect(frontend('/'))
     await deleteSession(session.id)
-    res.redirect(await endSessionUrl(session.id_token, frontend('/')))
+    res.redirect(await endSessionUrl(decrypt(session.id_token), frontend('/')))
 }
 
 /** De sessie van dit verzoek, of null. */

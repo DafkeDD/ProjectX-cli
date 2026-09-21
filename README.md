@@ -277,6 +277,28 @@ database per organisatie nodig.
   server components.
 - Uitleg in het project: `backend/docs/sso.md`.
 
+### Beveiliging (vanaf v0.18.0)
+
+- **Toegang intrekken werkt door naar de apps.** Een nieuw wachtwoord of een intrekking gooit in de hub de sessies,
+  grants en tokens weg en stuurt `user.sessions_revoked` naar elke app; die sluit dan zijn eigen sessies. Een app
+  controleert bovendien bij elk verzoek of zijn access token nog vernieuwd kan worden.
+- **Afmelden is echt afmelden:** ook de SSO-sessie van de hub, in beide richtingen.
+- **Remmen tegen misbruik:** per IP op inloggen, registreren, bevestigen, wachtwoord vergeten en opnieuw sturen, en
+  hoogstens twee scrypt-berekeningen tegelijk, zodat niemand de hub kan platleggen met inlogpogingen.
+- **Registreren verraadt niet** of een adres al bestaat; wie al een account heeft, krijgt een mail dat iemand probeerde
+  te registreren.
+- **Webhooks:** het adres moet https zijn (of localhost) én binnen de domeinen van het registratietoken vallen,
+  omleidingen worden niet gevolgd, en de handtekening wordt in constante tijd vergeleken.
+- **Cookies** krijgen automatisch `Secure` zodra je op https draait; `frame-ancestors 'none'`, `X-Frame-Options`,
+  `X-Content-Type-Options` en `Referrer-Policy` staan op elke pagina.
+- **Refresh tokens roteren**, het id-token wordt volledig nagekeken (handtekening, uitgever, ontvanger, `azp`, `iat`,
+  nonce, en de sleutel van de organisatie tegen haar id), en de adressen uit `.well-known` moeten van dezelfde server
+  komen als de issuer.
+- **`.env` met wachtwoorden en sleutels** krijgt rechten 0600; het wachtwoord van de Docker-beheerder gaat via een
+  tijdelijk bestand in plaats van de procesargumenten.
+- **Events komen precies één keer aan:** vastleggen en verwerken zitten in één transactie, met een eigen teller, en de
+  hub bezorgt ze zonder overlappende rondes (`for update skip locked`).
+
 ## GitHub — altijd de laatste vraag
 
 1. _Wil je dit naar GitHub pushen?_

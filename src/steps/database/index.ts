@@ -5,6 +5,7 @@ import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import pg from 'pg'
 import { runQuiet } from '../../utils/exec.js'
+import { protectFile } from '../../utils/guard.js'
 import { withProgress } from '../../utils/progress.js'
 import { orCancel } from '../../utils/prompt.js'
 import { findFreePort } from '../../utils/ports.js'
@@ -80,6 +81,23 @@ async function isSuperuser(client: pg.Client): Promise<boolean> {
         'select rolsuper from pg_roles where rolname = current_user'
     )
     return rows[0]?.rolsuper === true
+}
+
+/**
+ * PostgreSQL ouder dan 16: een rol met CREATEROLE kan zichzelf lid maken van
+ * andere rollen. Op een gedeelde server kan de provisioner van dit project dan
+ * bij de databases van je andere projecten. Waarschuwen, niet blokkeren.
+ */
+async function warnOldPostgres(client: pg.Client): Promise<void> {
+    const { rows } = await client.query<{ server_version_num: string }>('show server_version_num')
+    const version = Number(rows[0]?.server_version_num ?? 0)
+    if (version && version < 160000) {
+        p.log.warn(
+            `Deze PostgreSQL is ouder dan 16 (${Math.floor(version / 10000)}). De rol die tenants aanmaakt, kan daar ` +
+                `bij rollen van andere projecten op dezelfde server. Gebruik voor productie PostgreSQL 16 of nieuwer, ` +
+                `of een eigen server per project.`
+        )
+    }
 }
 
 /** Bestaat er al iets met dit voorvoegsel? */
@@ -321,6 +339,7 @@ export async function prepareDatabase(db: DatabaseChoice): Promise<DatabaseSecre
         if (db.mode === 'docker' && db.newContainer) writeAdminConfig(db.admin)
         try {
             if (!(await isSuperuser(admin))) throw new Error(`${db.admin.user} is geen superuser.`)
+            await warnOldPostgres(admin)
             if (await keyInUse(admin, k))
                 throw new Error(`Er bestaan al databases of rollen met het voorvoegsel ${k}_.`)
 
@@ -418,6 +437,7 @@ export async function setupDatabase(
             ...healthFiles(nest)
         })
         fs.appendFileSync(path.join(target, '.env'), envBlock(db, secrets), 'utf8')
+        protectFile(path.join(target, '.env'))
         fs.appendFileSync(path.join(target, '.env.example'), envBlock(db, null), 'utf8')
         patchStartup(target, nest)
 

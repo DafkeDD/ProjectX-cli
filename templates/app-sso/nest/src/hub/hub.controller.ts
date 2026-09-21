@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, HttpCode, Post, Req } from '@nestjs/common'
+import { Controller, ForbiddenException, HttpCode, Post, Req } from '@nestjs/common'
 import type { RawBodyRequest } from '@nestjs/common'
 import type { Request } from 'express'
 import { handleEvent, verifySignature } from './events.js'
@@ -12,7 +12,7 @@ export class HubController {
     async events(@Req() req: RawBodyRequest<Request>) {
         const body = req.rawBody?.toString('utf8') ?? ''
         if (!verifySignature(body, req.headers['x-projectx-timestamp'], req.headers['x-projectx-signature'])) {
-            throw new BadRequestException({ key: 'forbidden' })
+            throw new ForbiddenException()
         }
         await handleEvent(JSON.parse(body) as HubEvent)
     }

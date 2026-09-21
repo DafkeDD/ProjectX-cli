@@ -4,6 +4,8 @@ import { getAccount } from '../hub/accounts.js'
 import { HubAdapter } from './adapter.js'
 import { grantOrg, orgClaims } from './grant-org.js'
 import { cookieKeys, signingKeys } from './keys.js'
+import { SESSION_COOKIE } from '../auth/session.js'
+import { endHubSession } from '../hub/revoke.js'
 
 let instance: Provider | null = null
 
@@ -27,8 +29,8 @@ export async function createProvider(): Promise<Provider> {
         cookies: {
             keys: await cookieKeys(),
             names: { session: 'px_oidc', interaction: 'px_interaction', resume: 'px_resume' },
-            long: { signed: true, secure: env.production, sameSite: 'lax' },
-            short: { signed: true, secure: env.production, sameSite: 'lax' }
+            long: { signed: true, secure: env.secureCookies, sameSite: 'lax' },
+            short: { signed: true, secure: env.secureCookies, sameSite: 'lax' }
         },
 
         scopes: ['openid', 'offline_access', 'email', 'profile', 'organization'],
@@ -70,6 +72,9 @@ export async function createProvider(): Promise<Provider> {
 
         responseTypes: ['code'],
         pkce: { required: () => true },
+        // Elk gebruik van een refresh token geeft een nieuw token: hergebruik van
+        // een oud token valt zo op en trekt de hele grant in.
+        rotateRefreshToken: true,
         clientDefaults: {
             grant_types: ['authorization_code', 'refresh_token'],
             response_types: ['code'],
@@ -89,6 +94,9 @@ export async function createProvider(): Promise<Provider> {
                     )
                 },
                 async postLogoutSuccessSource(ctx: KoaContextWithOIDC) {
+                    // Afmelden via een app sluit ook de sessie van de hub zelf.
+                    await endHubSession(ctx.cookies.get(SESSION_COOKIE))
+                    ctx.cookies.set(SESSION_COOKIE, null, { path: '/' })
                     ctx.redirect(`${env.frontendUrl}/`)
                 }
             }
@@ -104,8 +112,10 @@ export async function createProvider(): Promise<Provider> {
             RefreshToken: 14 * 24 * 3600
         },
 
-        // Fouten tonen op een pagina van de frontend (vertaald).
-        async renderError(ctx, out) {
+        // Fouten tonen op een pagina van de frontend (vertaald). De details
+        // enkel in de log: de bezoeker ziet alleen de code.
+        async renderError(ctx, out, error) {
+            console.error('OIDC-fout:', out.error, out.error_description ?? '', error)
             const query = new URLSearchParams({ error: String(out.error ?? 'server_error') })
             ctx.redirect(`${env.frontendUrl}/error?${query}`)
         }
@@ -114,5 +124,9 @@ export async function createProvider(): Promise<Provider> {
     instance = new Provider(env.issuer, configuration)
     // Achter de frontend (Next.js stuurt /oidc door): X-Forwarded-* vertrouwen.
     instance.proxy = true
+    // Fouten van de provider zie je anders nergens: de bezoeker krijgt enkel
+    // "server_error" op de foutpagina.
+    instance.on('server_error', (_ctx, error) => console.error('OIDC-fout:', error))
+    instance.on('grant.error', (_ctx, error) => console.error('OIDC grant-fout:', error))
     return instance
 }

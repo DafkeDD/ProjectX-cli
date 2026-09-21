@@ -24,8 +24,8 @@ authRouter.get('/callback', (req, res, next) => {
     finishLogin(req, res).catch(next)
 })
 
-/** GET /auth/logout — afmelden, hier en bij de hub. */
-authRouter.get('/logout', (req, res, next) => {
+/** POST /auth/logout — afmelden, hier en bij de hub (POST: niet van buitenaf te forceren). */
+authRouter.post('/logout', (req, res, next) => {
     logout(req, res).catch(next)
 })
 

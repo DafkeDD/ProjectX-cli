@@ -16,10 +16,11 @@ export const loginUrl = (returnTo = '/') => `/auth/login?returnTo=${encodeURICom
 /** Zelfde, maar met de keuze van een andere organisatie. */
 export const switchUrl = (returnTo = '/') => `/auth/switch?returnTo=${encodeURIComponent(returnTo)}`
 
-export const logoutUrl = '/auth/logout'
+/** Afmelden gebeurt met een POST-formulier (zie LogoutForm), niet met een link. */
+export const logoutPath = '/auth/logout'
 
 /** Meldingen die na een mislukte of afgebroken login in de URL staan (?login=...). */
-const NOTICES = ['expired', 'tenant', 'access_denied'] as const
+const NOTICES = ['expired', 'tenant', 'blocked', 'access_denied'] as const
 export type Notice = (typeof NOTICES)[number] | 'error'
 
 export const noticeOf = (value: unknown): Notice | undefined => {
@@ -32,7 +33,12 @@ export async function getMe(): Promise<Me | null> {
     try {
         return await serverApi.get<Me>('/auth/me', { cache: 'no-store' })
     } catch (error) {
-        if (error instanceof ApiError && (error.status === 401 || error.code === 'unreachable')) return null
+        if (error instanceof ApiError && error.status === 401) return null
+        // Backend onbereikbaar is iets anders dan "niet aangemeld".
+        if (error instanceof ApiError && error.code === 'unreachable') {
+            console.error(`Backend niet bereikbaar: ${error.message}`)
+            redirect('/unavailable')
+        }
         throw error
     }
 }

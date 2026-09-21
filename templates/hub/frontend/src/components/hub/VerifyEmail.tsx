@@ -37,6 +37,8 @@ export default function VerifyEmail({ token }: { token: string }) {
                 disabled={!token}
                 onClick={async () => {
                     if (await run(() => api.post('/api/auth/verify', { token }))) setDone(true)
+                    // Het eenmalige token uit de adresbalk halen (geschiedenis, logs).
+                    window.history.replaceState(null, '', window.location.pathname)
                 }}
             >
                 {t('verify.submit')}

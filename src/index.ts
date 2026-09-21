@@ -155,8 +155,13 @@ async function main(): Promise<void> {
 
     // ---- Installeren -------------------------------------------------------
     // Eerst de database: een probleem daar zien we liever vóór er iets geïnstalleerd is.
-    // Aansluiten bij de hub: mislukt dat, dan stoppen we vóór er iets staat.
     const publicUrl = port ? `http://localhost:${port}` : `http://localhost:${backendPort}`
+
+    const dbSecrets = database && !isHub ? await prepareDatabase(database) : null
+    const hubDbPassword = database && isHub ? await prepareHubDatabase(database) : null
+
+    // Pas aansluiten bij de hub als de database er staat: zo verbruiken we het
+    // registratietoken niet voor een installatie die toch niet lukt.
     let registered: RegisteredApp | null = null
     if (connection && database && backendPort) {
         const s = p.spinner()
@@ -175,9 +180,6 @@ async function main(): Promise<void> {
         }
         s.stop(`Aangesloten bij de hub ${pc.dim(`client_id ${registered.clientId}`)}`)
     }
-
-    const dbSecrets = database && !isHub ? await prepareDatabase(database) : null
-    const hubDbPassword = database && isHub ? await prepareHubDatabase(database) : null
 
     const apiUrl = backendPort ? `http://localhost:${backendPort}` : undefined
     // De hub-frontend praat met zichzelf (hij stuurt /api en /oidc door naar de backend).

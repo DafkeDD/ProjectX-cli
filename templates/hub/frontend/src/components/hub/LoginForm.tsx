@@ -1,5 +1,6 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Alert, Button, Field, Input } from '@/components/ui'
 import { useRouter } from '@/i18n/navigation'
@@ -11,6 +12,9 @@ import { field, useSubmit } from './use-submit'
 export default function LoginForm() {
     const t = useTranslations('Hub')
     const router = useRouter()
+    // Kwam je van een beschermde pagina? Dan gaan we daar na het inloggen naartoe.
+    const requested = useSearchParams().get('next')
+    const next = requested && requested.startsWith('/') && !requested.startsWith('//') ? requested : '/'
     const { pending, error, run } = useSubmit()
 
     async function submit(event: React.FormEvent<HTMLElement>) {
@@ -20,8 +24,8 @@ export default function LoginForm() {
             api.post('/api/auth/login', { email: field(form, 'email'), password: field(form, 'password') })
         )
         if (ok) {
-            router.replace('/')
             router.refresh()
+            router.replace(next)
         }
     }
 

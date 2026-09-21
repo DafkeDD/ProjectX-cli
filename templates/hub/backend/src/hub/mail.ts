@@ -22,7 +22,8 @@ export async function sendMail(
     link: string
 ): Promise<void> {
     const { subject, text } = mailText(to.locale, kind, { name: to.name, app: env.appName, link })
-    if (!env.production) logger.log(`${kind} -> ${to.email}: ${link}`)
+    // Enkel met MAIL_DEBUG=1: anders staan resetlinks in de log van een server.
+    if (env.mailDebug) logger.log(`${kind} -> ${to.email}: ${link}`)
     try {
         await transport.sendMail({
             from: env.mail.from,
@@ -31,8 +32,8 @@ export async function sendMail(
             text
         })
     } catch (error) {
-        // Geen mailserver in ontwikkeling: niet fataal, de link staat in de log.
-        if (env.production) throw error
+        // Geen mailserver tijdens ontwikkeling (MAIL_DEBUG=1): niet fataal.
+        if (!env.mailDebug) throw error
         logger.warn(
             `E-mail niet verstuurd (${error instanceof Error ? error.message : error}) — gebruik de link hierboven.`
         )

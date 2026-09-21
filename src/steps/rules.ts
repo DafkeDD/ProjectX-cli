@@ -193,7 +193,7 @@ Talen: ${locales.map(code).join(', ')}. Standaardtaal: ${code(defaultLocale)}. D
 - App-naam (\`NEXT_PUBLIC_APP_NAME\`) en poort (\`PORT\`) staan in \`.env\`. In de code **altijd** via
   \`import { env } from '@/lib/env'\` (\`env.appName\`, \`env.port\`), nooit \`process.env\` rechtstreeks en nooit de naam
   hard coderen.
-- Nieuwe instelling = in \`.env\`, in \`.env.example\` én in \`src/lib/env.ts\`. Geheimen nooit in \`.env.example\`.
+- Nieuwe instelling = in \`.env\`, in \`.env.example\` én in \`src/lib/env.ts\`; iets dat geheim of enkel voor de server is, hoort in \`src/lib/env.server.ts\`. Geheimen nooit in \`.env.example\`.
 - \`npm run dev\` / \`npm run start\` lopen via \`scripts/next.mjs\`, dat \`PORT\` uit \`.env\` leest. Niet vervangen door
   \`next dev\`.
 
@@ -265,6 +265,9 @@ bijkomt — voor mensen én voor AI-assistenten (die lezen het blok in
 - \`.env\` gaat **niet** mee in git; \`.env.example\` wel. Een nieuwe instelling
   zet je in alle drie (\`.env\`, \`.env.example\`, \`src/lib/env.ts\`). Geheimen
   nooit in \`.env.example\`.
+- Alles in \`src/lib/env.ts\` kan in de browser belanden. Een waarde die geheim
+  is of enkel voor de server telt (API-sleutels, interne adressen), hoort in
+  \`src/lib/env.server.ts\` — nooit importeren in een bestand met \`'use client'\`.
 - Next.js leest \`PORT\` zelf niet uit \`.env\`; daarom starten \`dev\` en
   \`start\` via \`scripts/next.mjs\`. Na het wijzigen van \`.env\`: dev-server
   herstarten (\`NEXT_PUBLIC_\`-waarden worden bij het bouwen ingevuld).

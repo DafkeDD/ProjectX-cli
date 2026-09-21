@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { env } from '../env.js'
 import { control } from '../db/control.js'
+import type { Db } from '../db/sql.js'
 import { deleteSessionsFor, deleteSessionsOfOrg } from '../auth/sessions.js'
 import { fetchEvents, type HubEvent } from './client.js'
 
@@ -23,8 +24,8 @@ export function verifySignature(body: string, timestamp: unknown, signature: unk
 }
 
 /** Nog niet verwerkt? Dan meteen vastleggen dat we het nu doen. */
-async function claim(event: HubEvent): Promise<boolean> {
-    const result = await control.query(
+async function claim(db: Db, event: HubEvent): Promise<boolean> {
+    const result = await db.query(
         'insert into processed_events (id, type) values ($1, $2) on conflict (id) do nothing',
         [event.id, event.type]
     )
@@ -32,7 +33,7 @@ async function claim(event: HubEvent): Promise<boolean> {
 }
 
 /** Wat elk soort event betekent voor deze app. */
-async function apply(event: HubEvent): Promise<void> {
+async function apply(db: Db, event: HubEvent): Promise<void> {
     const data = event.data as {
         account_id?: string
         org_id?: string
@@ -45,7 +46,7 @@ async function apply(event: HubEvent): Promise<void> {
     switch (event.type) {
         case 'organization.updated':
             if (data.tenant_key && data.name) {
-                await control.query('update tenants set name = $2, updated_at = now() where tenant_key = $1', [
+                await db.query('update tenants set name = $2, updated_at = now() where tenant_key = $1', [
                     data.tenant_key,
                     data.name
                 ])
@@ -58,7 +59,7 @@ async function apply(event: HubEvent): Promise<void> {
         case 'license.suspended':
         case 'license.revoked':
             if (data.tenant_key) {
-                await control.query('update tenants set license = $2, updated_at = now() where tenant_key = $1', [
+                await db.query('update tenants set license = $2, updated_at = now() where tenant_key = $1', [
                     data.tenant_key,
                     data.license ?? null
                 ])
@@ -68,15 +69,16 @@ async function apply(event: HubEvent): Promise<void> {
         // Geen toegang meer: de sessies van die gebruiker sluiten.
         case 'seat.revoked':
         case 'membership.removed':
-            if (data.account_id) await deleteSessionsFor(data.account_id, orgId)
+            if (data.account_id) await deleteSessionsFor(data.account_id, orgId, db)
             break
 
         case 'user.disabled':
-            if (data.account_id) await deleteSessionsFor(data.account_id)
+        case 'user.sessions_revoked':
+            if (data.account_id) await deleteSessionsFor(data.account_id, null, db)
             break
 
         case 'organization.disabled':
-            if (orgId) await deleteSessionsOfOrg(orgId)
+            if (orgId) await deleteSessionsOfOrg(orgId, db)
             break
 
         default:
@@ -85,24 +87,36 @@ async function apply(event: HubEvent): Promise<void> {
     }
 }
 
-/** Eén event verwerken (uit de webhook of opgehaald). */
+/**
+ * Eén event verwerken (uit de webhook of opgehaald). Vastleggen dát we het
+ * verwerken en het verwerken zelf zitten in één transactie: gaat er iets mis,
+ * dan is het alsof er niets gebeurd is en komt het event later opnieuw.
+ */
 export async function handleEvent(event: HubEvent): Promise<void> {
-    if (!(await claim(event))) return
-    try {
-        await apply(event)
-    } catch (error) {
-        // Niet gelukt: opnieuw laten aanbieden bij de volgende ronde.
-        await control.query('delete from processed_events where id = $1', [event.id])
-        throw error
-    }
+    // Van een andere app? Niet verwerken.
+    if (event.appKey && event.appKey !== env.oidc.clientId()) return
+    await control.tx(async tx => {
+        if (!(await claim(tx, event))) return
+        await apply(tx, event)
+    })
 }
 
-/** Alles ophalen wat we gemist hebben (bij het opstarten en elke minuut). */
+/**
+ * Alles ophalen wat we gemist hebben (bij het opstarten en elke minuut). De
+ * teller schuift pas op als een event echt verwerkt is.
+ */
 export async function syncEvents(): Promise<number> {
-    const row = await control.one<{ last: string | null }>('select max(id) as last from processed_events')
-    const events = await fetchEvents(row?.last ?? null)
-    for (const event of events) await handleEvent(event)
-    return events.length
+    const cursor = await control.one<{ last_event_id: string | null }>('select last_event_id from event_cursor')
+    let after = cursor?.last_event_id ?? null
+    const events = await fetchEvents(after)
+    let done = 0
+    for (const event of events) {
+        await handleEvent(event)
+        after = event.id
+        done++
+        await control.query('update event_cursor set last_event_id = $1, updated_at = now()', [after])
+    }
+    return done
 }
 
 /** Start de ophaal-lus (elke minuut). */

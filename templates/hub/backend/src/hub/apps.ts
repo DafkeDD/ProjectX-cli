@@ -42,6 +42,19 @@ export function checkRedirectUris(uris: unknown): string[] | null {
 
 export const hostsOf = (uris: string[]): string[] => [...new Set(uris.map(u => new URL(u).hostname))]
 
+/**
+ * Waar de hub events naartoe stuurt. Alleen https (of http op de eigen machine,
+ * voor ontwikkeling): anders kan iemand met een token de hub verzoeken laten
+ * doen naar een adres in het interne netwerk.
+ */
+export function checkWebhookUrl(value: unknown): string | null {
+    const checked = checkRedirectUris([value])
+    if (!checked) return null
+    const url = new URL(checked[0]!)
+    const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]'
+    return url.protocol === 'https:' || local ? url.toString() : null
+}
+
 export interface RegisterInput {
     /** Het registratietoken (pxr_...). */
     token: string
@@ -73,7 +86,13 @@ export async function registerApp(input: RegisterInput): Promise<Registered | Re
     const existing = await hub.one<{ id: string }>('select id from apps where id = $1', [input.appKey])
     if (existing) return 'appKeyTaken'
 
-    const tokenId = await useToken(input.token, hostsOf(input.redirectUris))
+    // Ook de webhook telt mee voor de toegelaten domeinen van het token.
+    const hosts = hostsOf([
+        ...input.redirectUris,
+        ...input.postLogoutRedirectUris,
+        ...(input.webhookUrl ? [input.webhookUrl] : [])
+    ])
+    const tokenId = await useToken(input.token, hosts)
     if (!tokenId) return 'invalidToken'
 
     const clientSecret = secret()

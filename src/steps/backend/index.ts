@@ -7,6 +7,7 @@ import { withProgress } from '../../utils/progress.js'
 import { orCancel } from '../../utils/prompt.js'
 import { findFreePort } from '../../utils/ports.js'
 import { setupPrettier, formatAll } from '../../utils/prettier.js'
+import { protectFile } from '../../utils/guard.js'
 import type { PackageManager } from '../../types.js'
 import type { I18nConfig } from '../i18n.js'
 import { backendAgents, DEFAULT_BACKEND_PORT, ENV_TS, envFile, i18nFiles, VERSION_TS } from './shared.js'
@@ -90,6 +91,8 @@ function writeFiles(target: string, files: Record<string, string>): void {
         const file = path.join(target, name)
         fs.mkdirSync(path.dirname(file), { recursive: true })
         fs.writeFileSync(file, content.endsWith('\n') ? content : content + '\n', 'utf8')
+        // .env bevat wachtwoorden en sleutels: enkel leesbaar voor deze gebruiker.
+        if (path.basename(file) === '.env') protectFile(file)
     }
 }
 

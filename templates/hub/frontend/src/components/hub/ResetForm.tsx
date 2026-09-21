@@ -22,6 +22,8 @@ export default function ResetForm({ token }: { token: string }) {
             api.post('/api/auth/reset', { token, password: field(form, 'password') }).then(() => true)
         )
         if (ok) setDone(true)
+        // Het eenmalige token uit de adresbalk halen (geschiedenis, logs).
+        window.history.replaceState(null, '', window.location.pathname)
     }
 
     if (done) {

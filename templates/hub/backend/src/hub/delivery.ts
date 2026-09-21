@@ -39,7 +39,11 @@ async function deliver(row: Pending): Promise<void> {
     })
     const timestamp = String(Math.floor(Date.now() / 1000))
     const secret = await webhookSecretOf(row.app_id)
-    if (!secret || !row.webhook_url) return
+    if (!secret || !row.webhook_url) {
+        // Niets om naartoe te sturen: klaarzetten om op te halen.
+        await hub.query('update events set delivery = delivery || \'{"state":"poll"}\'::jsonb where id = $1', [row.id])
+        return
+    }
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 10_000)
@@ -52,6 +56,8 @@ async function deliver(row: Pending): Promise<void> {
                 'x-projectx-signature': signBody(secret, timestamp, body)
             },
             body,
+            // Nooit een omleiding volgen: anders stuurt een app ons alsnog ergens anders heen.
+            redirect: 'manual',
             signal: controller.signal
         })
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -77,17 +83,46 @@ async function deliver(row: Pending): Promise<void> {
     }
 }
 
-/** Alles wat nu aan de beurt is, opsturen (elke 30 seconden). */
+let running = false
+
+/**
+ * Alles wat nu aan de beurt is, opsturen (elke 30 seconden). Eén ronde tegelijk,
+ * en de rijen worden vergrendeld (`skip locked`) zodat een tweede backend
+ * dezelfde events niet nog eens verstuurt.
+ */
 export async function deliverPending(): Promise<void> {
-    const rows = await hub.many<Pending & Record<string, unknown>>(
-        `select e.id, e.type, e.app_id, e.data, e.created_at, a.webhook_url,
-                coalesce((e.delivery->>'attempts')::int, 0) as attempts, e.delivery->>'first_at' as first_at
-           from events e join apps a on a.id = e.app_id
-          where e.delivery->>'state' = 'pending'
-            and coalesce((e.delivery->>'next_at')::timestamptz, e.created_at) <= now()
-          order by e.id limit $1`,
-        [BATCH]
-    )
+    if (running) return
+    running = true
+    try {
+        await deliverBatch()
+    } finally {
+        running = false
+    }
+}
+
+async function deliverBatch(): Promise<void> {
+    const rows = await hub.tx(async tx => {
+        const pending = await tx.many<Pending & Record<string, unknown>>(
+            `select e.id, e.type, e.app_id, e.data, e.created_at, a.webhook_url,
+                    coalesce((e.delivery->>'attempts')::int, 0) as attempts, e.delivery->>'first_at' as first_at
+               from events e join apps a on a.id = e.app_id
+              where e.delivery->>'state' = 'pending'
+                and coalesce((e.delivery->>'next_at')::timestamptz, e.created_at) <= now()
+              order by e.id limit $1
+              for update of e skip locked`,
+            [BATCH]
+        )
+        // Meteen vooruitzetten: mislukt de bezorging, dan bepaalt deliver() de
+        // volgende poging; lukt ze, dan is de rij toch afgewerkt.
+        if (pending.length) {
+            await tx.query(
+                `update events set delivery = delivery || jsonb_build_object('next_at', (now() + interval '5 minutes')::text)
+                  where id = any($1::text[])`,
+                [pending.map(row => row.id)]
+            )
+        }
+        return pending
+    })
     for (const row of rows) {
         // Zonder webhook blijft het event klaarstaan om opgehaald te worden.
         if (!row.webhook_url) {

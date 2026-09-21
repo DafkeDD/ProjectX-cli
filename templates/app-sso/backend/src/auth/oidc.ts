@@ -1,6 +1,7 @@
 import { createHash, createPublicKey, randomBytes, type KeyObject } from 'node:crypto'
 import { verify } from 'node:crypto'
 import { env } from '../env.js'
+import { tenantKeyFor } from '../db/tenants.js'
 
 /**
  * OIDC-client van deze app: praten met de SSO-hub (authorization code + PKCE).
@@ -27,8 +28,30 @@ export async function discovery(): Promise<Discovery> {
     if (!response.ok) throw new Error(`SSO-hub niet bereikbaar (${url}: HTTP ${response.status})`)
     const doc = (await response.json()) as Discovery
     if (doc.issuer !== env.oidc.issuer) throw new Error(`De hub noemt zich ${doc.issuer}, verwacht ${env.oidc.issuer}`)
+    checkEndpoints(doc)
     discovered = { at: Date.now(), doc }
     return doc
+}
+
+const isLocal = (url: URL) => url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]'
+
+/**
+ * De adressen uit .well-known moeten van dezelfde hub komen. Anders kan iemand
+ * die het antwoord onderschept ons naar zijn eigen token- of sleuteladres
+ * sturen — en dan geven we hem ons client secret.
+ */
+function checkEndpoints(doc: Discovery): void {
+    const issuer = new URL(env.oidc.issuer)
+    if (issuer.protocol !== 'https:' && !isLocal(issuer)) {
+        throw new Error(`De hub moet via https draaien (${env.oidc.issuer}).`)
+    }
+    for (const [name, value] of Object.entries(doc)) {
+        if (!name.endsWith('_endpoint') && name !== 'jwks_uri') continue
+        if (typeof value !== 'string') continue
+        if (new URL(value).origin !== issuer.origin) {
+            throw new Error(`De hub geeft een adres op een andere server op (${name}: ${value}).`)
+        }
+    }
 }
 
 export const randomString = () => randomBytes(32).toString('base64url')
@@ -127,7 +150,9 @@ export interface Claims {
     org_role: 'owner' | 'admin' | 'member'
     iss: string
     aud: string | string[]
+    azp?: string
     exp: number
+    iat?: number
     nonce?: string
 }
 
@@ -138,10 +163,15 @@ async function publicKey(kid: string): Promise<KeyObject> {
         const { jwks_uri } = await discovery()
         const response = await fetch(jwks_uri)
         if (!response.ok) throw new Error(`Sleutels van de hub niet op te halen (HTTP ${response.status})`)
-        const { keys: jwks } = (await response.json()) as { keys: { kid: string }[] }
+        const { keys: jwks } = (await response.json()) as { keys: { kid: string; kty?: string; use?: string }[] }
         keys = {
             at: Date.now(),
-            byKid: new Map(jwks.map(jwk => [jwk.kid, createPublicKey({ key: jwk as never, format: 'jwk' })]))
+            byKid: new Map(
+                jwks
+                    // Enkel RSA-sleutels om handtekeningen mee na te kijken.
+                    .filter(jwk => jwk.kty === 'RSA' && (jwk.use === undefined || jwk.use === 'sig'))
+                    .map(jwk => [jwk.kid, createPublicKey({ key: jwk as never, format: 'jwk' })])
+            )
         }
     }
     const key = keys.byKid.get(kid)
@@ -171,9 +201,25 @@ export async function verifyIdToken(idToken: string, nonce: string): Promise<Cla
 
     const claims = part<Claims>(payload)
     const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud]
+    const now = Date.now()
     if (claims.iss !== env.oidc.issuer) throw new Error('Het id-token komt van een andere hub.')
     if (!audience.includes(env.oidc.clientId())) throw new Error('Het id-token is voor een andere app.')
-    if (claims.exp * 1000 < Date.now()) throw new Error('Het id-token is verlopen.')
+    // Meerdere ontvangers: dan moet azp zeggen dat het voor ons bedoeld is.
+    if (audience.length > 1 && claims.azp !== env.oidc.clientId()) {
+        throw new Error('Het id-token is voor een andere app uitgegeven.')
+    }
+    if (claims.exp * 1000 < now) throw new Error('Het id-token is verlopen.')
+    // 60 seconden speling voor klokverschil.
+    if (typeof claims.iat !== 'number' || claims.iat * 1000 > now + 60_000) {
+        throw new Error('Het id-token heeft geen geldige uitgiftetijd.')
+    }
     if (claims.nonce !== nonce) throw new Error('Het id-token hoort niet bij dit inlogverzoek.')
+    if (!claims.sub || !claims.org_id || !claims.tenant_key || !claims.org_role) {
+        throw new Error('Het id-token bevat geen organisatie; kies een organisatie bij de hub.')
+    }
+    // De sleutel van de organisatie moet bij haar id horen: die sleutel kiest de database.
+    if (claims.tenant_key !== tenantKeyFor(claims.org_id)) {
+        throw new Error('De sleutel van de organisatie klopt niet met haar id.')
+    }
     return claims
 }

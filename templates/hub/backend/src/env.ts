@@ -24,6 +24,13 @@ export const env = {
     /** OIDC-issuer: altijd via de frontend, nooit rechtstreeks de backend. */
     issuer: `${frontendUrl}/oidc`,
     production: process.env.NODE_ENV === 'production',
+    /**
+     * Cookies krijgen `Secure` zodra de hub op https draait — dus ook als
+     * NODE_ENV niet gezet is. Op http (ontwikkeling) kan het niet.
+     */
+    secureCookies: frontendUrl.startsWith('https://') && process.env.ALLOW_INSECURE_COOKIES !== '1',
+    /** Links van e-mails ook in de log tonen (enkel voor ontwikkeling). */
+    mailDebug: process.env.MAIL_DEBUG === '1',
 
     db: {
         host: process.env.DB_HOST || 'localhost',

@@ -3,6 +3,13 @@ import { control } from '../db/control.js'
 import { reportTenant } from '../hub/client.js'
 import type { Claims } from '../auth/oidc.js'
 
+/** De organisatie mag deze app niet (meer) gebruiken. */
+export class TenantBlockedError extends Error {
+    constructor(readonly status: string) {
+        super(`De organisatie staat op "${status}".`)
+    }
+}
+
 /**
  * De database van een organisatie bij de EERSTE login aanmaken. Bestaat ze al,
  * dan houden we enkel de naam gelijk met de hub. De hub krijgt het resultaat
@@ -19,7 +26,8 @@ export async function ensureTenant(claims: Pick<Claims, 'org_id' | 'org_name' | 
         }
         return existing
     }
-    if (existing?.status === 'blocked' || existing?.status === 'archived') return existing
+    // Geblokkeerd of gearchiveerd: geen sessie, ook al klopt de login bij de hub.
+    if (existing?.status === 'blocked' || existing?.status === 'archived') throw new TenantBlockedError(existing.status)
 
     try {
         const tenant = await provisionTenant({ orgId: claims.org_id, name: claims.org_name })

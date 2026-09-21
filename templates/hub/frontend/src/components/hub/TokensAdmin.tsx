@@ -88,7 +88,7 @@ export default function TokensAdmin({ initial }: { initial: RegistrationToken[] 
             setRevealed(r => without(r, token.id))
             return
         }
-        const result = await run(() => api.get<{ token: string }>(`${BASE}/${token.id}/reveal`, { cache: 'no-store' }))
+        const result = await run(() => api.post<{ token: string }>(`${BASE}/${token.id}/reveal`))
         if (result) setRevealed(r => ({ ...r, [token.id]: result.token }))
     }
 
@@ -179,7 +179,14 @@ export default function TokensAdmin({ initial }: { initial: RegistrationToken[] 
                                             <code className={shown ? 'break-all' : 'whitespace-nowrap'}>
                                                 {shown ?? `pxr_••••${token.hint}`}
                                             </code>
-                                            {shown && <CopyButton value={shown} size='sm' />}
+                                            {shown && (
+                                                <CopyButton
+                                                    value={shown}
+                                                    size='sm'
+                                                    label={tc('copy')}
+                                                    copiedLabel={tc('copied')}
+                                                />
+                                            )}
                                             <Button
                                                 variant='ghost'
                                                 size='sm'

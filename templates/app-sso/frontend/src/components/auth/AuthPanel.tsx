@@ -1,7 +1,8 @@
 import { getTranslations } from 'next-intl/server'
 import { Alert, Badge, SectionHeader } from '@/components/ui'
-import { getMe, loginUrl, logoutUrl, switchUrl, type Notice } from '@/lib/session'
+import { getMe, loginUrl, switchUrl, type Notice } from '@/lib/session'
 import LinkButton from './LinkButton'
+import LogoutForm from './LogoutForm'
 
 /**
  * Wie is er ingelogd? Zo niet: een knop naar de SSO-hub. Zo wel: naam,
@@ -28,9 +29,7 @@ export default async function AuthPanel({ returnTo = '/', notice }: { returnTo?:
                         <LinkButton href={switchUrl(returnTo)} variant='secondary' size='sm'>
                             {t('switchOrganization')}
                         </LinkButton>
-                        <LinkButton href={logoutUrl} variant='ghost' size='sm'>
-                            {t('logout')}
-                        </LinkButton>
+                        <LogoutForm label={t('logout')} />
                     </div>
                 </>
             ) : (

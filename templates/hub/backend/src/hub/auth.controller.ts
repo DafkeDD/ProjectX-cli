@@ -1,6 +1,5 @@
 import {
     Body,
-    ConflictException,
     Controller,
     ForbiddenException,
     Get,
@@ -15,10 +14,10 @@ import {
 import type { Request, Response } from 'express'
 import { env } from '../env.js'
 import { hub } from '../db/hub.js'
-import { consumeCode, createCode, deleteCodesFor } from '../auth/codes.js'
+import { consumeCode, createCode } from '../auth/codes.js'
 import { hashPassword, isEmail, isStrongPassword, verifyPassword } from '../auth/password.js'
-import { assertNotLimited, clearFailures, recordFailure } from '../auth/rate-limit.js'
-import { endSession, startSession } from '../auth/session.js'
+import { assertNotLimited, clearFailures, limitByIp, limitByValue, recordFailure } from '../auth/rate-limit.js'
+import { endSession, sessionAccount, startSession } from '../auth/session.js'
 import { resolveLocale } from '../i18n/i18n.js'
 import {
     createAccount,
@@ -31,6 +30,7 @@ import {
 } from './accounts.js'
 import { emitToApps, recordEvent } from './events.js'
 import { invalid, requireAccount, text } from './guards.js'
+import { endOidcSessions, revokeAccountAccess } from './revoke.js'
 import { sendMail } from './mail.js'
 
 type Body = Record<string, unknown>
@@ -50,28 +50,29 @@ async function sendVerification(account: Pick<Account, 'id' | 'email' | 'name' |
 export class AuthController {
     @Post('register')
     @HttpCode(201)
-    async register(@Body() body: Body, @Req() req: Request) {
+    async register(@Body() body: Body = {}, @Req() req?: Request) {
+        limitByIp(req!, 'register', 10)
         const email = text(body.email, 254)
         const name = text(body.name, 100)
         if (!isEmail(email)) throw invalid('invalidEmail')
         if (!name) throw invalid('badRequest')
         if (!isStrongPassword(body.password)) throw invalid('weakPassword')
 
+        // Altijd hetzelfde antwoord: zo kan niemand aftoetsen welke adressen bestaan.
         const existing = await findAccountByEmail(email)
         if (existing) {
-            // Nog niet bevestigd: gewoon opnieuw de mail sturen.
-            if (existing.status === 'pending') {
-                await sendVerification(existing)
-                return { status: 'pending' }
-            }
-            throw new ConflictException({ key: 'emailTaken' })
+            if (existing.status === 'pending') await sendVerification(existing)
+            // Bestaat al en is actief: die persoon krijgt een mail dat iemand
+            // met zijn adres probeerde te registreren.
+            else if (existing.status === 'active') await sendMail(existing, 'exists', `${env.frontendUrl}/forgot`)
+            return { status: 'pending' }
         }
 
         const { account, organization } = await createAccount({
             email,
             name,
             password: body.password,
-            locale: resolveLocale(req.headers),
+            locale: resolveLocale(req!.headers),
             organization: text(body.organization, 100)
         })
         await recordEvent({ type: 'account.registered', actorId: account.id, orgId: organization.id })
@@ -80,7 +81,8 @@ export class AuthController {
     }
 
     @Post('verify')
-    async verify(@Body() body: Body, @Res({ passthrough: true }) res: Response) {
+    async verify(@Body() body: Body = {}, @Req() req?: Request, @Res({ passthrough: true }) res?: Response) {
+        limitByIp(req!, 'verify', 30)
         const code = await consumeCode<{ accountId: string }>('EmailVerification', body.token)
         if (!code) throw invalid('linkInvalid')
         await hub.query(
@@ -89,22 +91,24 @@ export class AuthController {
         )
         await recordEvent({ type: 'account.verified', actorId: code.accountId })
         // Meteen ingelogd.
-        await startSession(res, code.accountId)
+        await startSession(res!, code.accountId)
         return { status: 'active' }
     }
 
     @Post('resend')
     @HttpCode(204)
-    async resend(@Body() body: Body) {
+    async resend(@Body() body: Body = {}, @Req() req?: Request) {
+        limitByIp(req!, 'resend', 5)
         const email = text(body.email, 254)
+        if (email) limitByValue('resend', email, 3, 3600_000)
         const account = email ? await findAccountByEmail(email) : null
         if (account?.status === 'pending') await sendVerification(account)
     }
 
     @Post('login')
-    async login(@Body() body: Body, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        const account = await checkCredentials(body, req)
-        await startSession(res, account.id)
+    async login(@Body() body: Body = {}, @Req() req?: Request, @Res({ passthrough: true }) res?: Response) {
+        const account = await checkCredentials(body, req!)
+        await startSession(res!, account.id)
         await recordEvent({ type: 'account.login', actorId: account.id, data: { via: 'hub' } })
         return { id: account.id, name: account.name }
     }
@@ -112,7 +116,10 @@ export class AuthController {
     @Post('logout')
     @HttpCode(204)
     async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        // Ook de SSO-sessie: anders logt één klik in een app je meteen weer in.
+        const account = await sessionAccount(req)
         await endSession(req, res)
+        if (account) await endOidcSessions(account.id)
     }
 
     @Get('me')
@@ -145,9 +152,11 @@ export class AuthController {
 
     @Post('forgot')
     @HttpCode(204)
-    async forgot(@Body() body: Body) {
+    async forgot(@Body() body: Body = {}, @Req() req?: Request) {
+        limitByIp(req!, 'forgot', 5)
         // Altijd hetzelfde antwoord: zo verraden we niet wie een account heeft.
         const email = text(body.email, 254)
+        if (email) limitByValue('forgot', email, 3, 3600_000)
         const account = email ? await findAccountByEmail(email) : null
         if (!account || account.status === 'disabled') return
         const code = await createCode('PasswordReset', { accountId: account.id }, 3600)
@@ -156,7 +165,8 @@ export class AuthController {
 
     @Post('reset')
     @HttpCode(204)
-    async reset(@Body() body: Body) {
+    async reset(@Body() body: Body = {}, @Req() req?: Request) {
+        limitByIp(req!, 'reset', 20)
         if (!isStrongPassword(body.password)) throw invalid('weakPassword')
         const code = await consumeCode<{ accountId: string }>('PasswordReset', body.token)
         if (!code) throw invalid('linkInvalid')
@@ -169,8 +179,9 @@ export class AuthController {
              where id = $1`,
             [account.id, await hashPassword(body.password)]
         )
-        // Overal afmelden: bestaande sessies werken niet meer.
-        await deleteCodesFor('HubSession', account.id)
+        // Overal afmelden: hub-sessies, SSO-sessies, grants en tokens weg, en de
+        // aangesloten apps sluiten hun eigen sessies (event user.sessions_revoked).
+        await revokeAccountAccess(account.id, 'password_reset')
         await recordEvent({ type: 'account.password_reset', actorId: account.id })
     }
 }
@@ -184,6 +195,11 @@ const dummyHash = hashPassword('geen-echt-wachtwoord-1')
 export async function checkCredentials(body: Body, req: Request): Promise<Account> {
     const email = text(body.email, 254)
     if (!email || typeof body.password !== 'string') throw invalid('invalidCredentials')
+    // Twee remmen: per e-mail + IP op mislukte pogingen, en per IP op het aantal
+    // pogingen zelf — anders ontsnapt wie telkens een ander adres verzint.
+    // Ruim genoeg voor een kantoor achter één IP, laag genoeg om het rekenwerk
+    // van scrypt niet als wapen te laten gebruiken (zie ook password.ts).
+    limitByIp(req, 'login', 60)
     const limitKey = `${email.toLowerCase()}|${req.ip}`
     assertNotLimited(limitKey)
 
