@@ -285,7 +285,10 @@ export async function applyHubBackend(target: string, pm: PackageManager, o: Hub
                 'db:migrate': `${cli} migrate`,
                 'hub:admin': `${cli} admin`,
                 'hub:token': `${cli} token`,
-                'hub:app': `${cli} app`
+                'hub:app': `${cli} app`,
+                'hub:seed': `${cli} seed`,
+                // Mailpit: e-mails van de hub bekijken op http://localhost:8025
+                mail: 'docker run --rm -p 127.0.0.1:1025:1025 -p 127.0.0.1:8025:8025 axllent/mailpit'
             })
         })
 
@@ -337,7 +340,7 @@ const HUB_FRONTEND_AGENTS = `
 `
 
 /** Next.config: /oidc, /api en de knoppen van het inlogscherm doorsturen naar de backend. */
-const REWRITES = `    /**
+export const HUB_REWRITES = `    /**
      * De hub is één adres: /oidc (de OIDC-server), /api en de knoppen van het
      * inlogscherm (/interaction/<uid>/<actie>) gaan door naar de backend.
      * Zo zijn alle cookies van dezelfde site.
@@ -375,7 +378,7 @@ export function applyHubFrontend(target: string, i18n: I18nConfig, backendPort: 
     const config = path.join(target, 'next.config.ts')
     let source = fs.readFileSync(config, 'utf8')
     if (!source.includes('async rewrites()')) {
-        source = source.replace('    /**\n     * Vangnet: de taal', `${REWRITES}    /**\n     * Vangnet: de taal`)
+        source = source.replace('    /**\n     * Vangnet: de taal', `${HUB_REWRITES}    /**\n     * Vangnet: de taal`)
         if (!source.includes('async rewrites()'))
             throw new Error('next.config.ts: rewrites konden niet toegevoegd worden.')
         fs.writeFileSync(config, source, 'utf8')

@@ -120,9 +120,15 @@ export function writeRootFiles(projectDir: string, appName: string, dirs: { dir:
 
     const readme = path.join(projectDir, 'README.md')
     if (!fs.existsSync(readme)) {
-        const lines = [`# ${appName}`, '', 'Opgezet met [ProjectX-cli](https://github.com/DafkeDD/ProjectX-cli).', '']
+        const lines = [
+            `# ${appName}`,
+            '',
+            'Opgezet met [ProjectX-cli](https://github.com/DafkeDD/ProjectX-cli).',
+            'Packages staan al geïnstalleerd en `.env` is al ingevuld — starten kan meteen.',
+            ''
+        ]
         for (const { dir, run } of dirs) {
-            lines.push(`## ${dir}`, '', '```bash', `cd ${dir}`, 'npm install', 'cp .env.example .env', run, '```', '')
+            lines.push(`## ${dir}`, '', '```bash', `cd ${dir}`, run, '```', '')
         }
         fs.writeFileSync(readme, lines.join('\n'), 'utf8')
     }
@@ -166,6 +172,9 @@ export async function pushToGithub(choice: GithubChoice, projectDir: string): Pr
             'Git-repo voorbereiden',
             async update => {
                 if (!fs.existsSync(path.join(projectDir, '.git'))) await runQuiet('git', ['init'], projectDir)
+                if (fs.existsSync(path.join(projectDir, '.githooks'))) {
+                    await runQuiet('git', ['config', 'core.hooksPath', '.githooks'], projectDir).catch(() => {})
+                }
                 await runQuiet('git', ['add', '.'], projectDir)
 
                 // Zonder user.name/user.email weigert git te committen: dan een tijdelijke identiteit.

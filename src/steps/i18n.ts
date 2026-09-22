@@ -5,6 +5,27 @@ import pc from 'picocolors'
 import { orCancel } from '../utils/prompt.js'
 import { THEME_MESSAGES } from './theme.js'
 
+/** Veiligheidsheaders in next.config.ts (ook gebruikt door `projectx-cli update`). */
+export const SECURITY_HEADERS = `    /**
+     * Veiligheidsheaders voor elke pagina. \`frame-ancestors\` houdt de app uit
+     * een onzichtbaar kader op een andere site (clickjacking).
+     */
+    async headers() {
+        return [
+            {
+                source: '/:path*',
+                headers: [
+                    { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+                    { key: 'X-Frame-Options', value: 'DENY' },
+                    { key: 'X-Content-Type-Options', value: 'nosniff' },
+                    { key: 'Referrer-Policy', value: 'same-origin' }
+                ]
+            }
+        ]
+    },
+
+`
+
 /** Alle talen waaruit je kan kiezen in de CLI. */
 export const AVAILABLE_LOCALES = ['en', 'nl', 'fr', 'de', 'es', 'it', 'pt', 'pl'] as const
 export type Locale = (typeof AVAILABLE_LOCALES)[number]
@@ -312,25 +333,7 @@ const nextConfig: NextConfig = {
     // package-lock.json staat (bv. later een backend of monorepo ernaast).
     turbopack: { root: __dirname },
 
-    /**
-     * Veiligheidsheaders voor elke pagina. \`frame-ancestors\` houdt de app uit
-     * een onzichtbaar kader op een andere site (clickjacking).
-     */
-    async headers() {
-        return [
-            {
-                source: '/:path*',
-                headers: [
-                    { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
-                    { key: 'X-Frame-Options', value: 'DENY' },
-                    { key: 'X-Content-Type-Options', value: 'nosniff' },
-                    { key: 'Referrer-Policy', value: 'same-origin' }
-                ]
-            }
-        ]
-    },
-
-    /**
+${SECURITY_HEADERS}    /**
      * Vangnet: de taal hoort NOOIT in de URL.
      *   /nl      -> /
      *   /nl/iets -> /iets

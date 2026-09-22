@@ -9,6 +9,7 @@ import { askIcons, iconsLabel, type IconLibrary } from './steps/icons.js'
 import { askAppName, askPort } from './steps/env.js'
 import { askProjectxUi, uiLabel, type UiChoice } from './steps/ui.js'
 import { askGithub, githubLabel, pushToGithub, writeRootFiles } from './steps/github.js'
+import { initRepo, writeRepoFiles } from './steps/repo.js'
 import {
     askBackend,
     askBackendPort,
@@ -44,12 +45,34 @@ import {
 import { formatAll } from './utils/prettier.js'
 import { orCancel } from './utils/prompt.js'
 import { isGlobalInstall } from './utils/guard.js'
+import { runDoctor } from './commands/doctor.js'
+import { runUpdate } from './commands/update.js'
 import type { PackageManager } from './types.js'
 
 const PACKAGE_MANAGER: PackageManager = 'npm'
 
 /** Versie uit package.json — zo zie je meteen of npx een oude kopie draait. */
 const VERSION: string = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
+
+/** Commando's naast de wizard: projectx-cli doctor / update. */
+async function runCommand(command: string): Promise<boolean> {
+    console.clear()
+    p.intro(`${pc.bgCyan(pc.black(' projectx-cli '))} ${pc.dim(`v${VERSION} · ${command}`)}`)
+    switch (command) {
+        case 'doctor':
+            await runDoctor(process.cwd())
+            break
+        case 'update':
+            await runUpdate(process.cwd(), PACKAGE_MANAGER)
+            break
+        default:
+            p.log.error(`Onbekend commando: ${command}. Ken: doctor, update.`)
+            p.outro('')
+            return false
+    }
+    p.outro('Klaar.')
+    return true
+}
 
 async function main(): Promise<void> {
     if (isGlobalInstall()) {
@@ -59,6 +82,13 @@ async function main(): Promise<void> {
                 '  en draai hem per project:  npx --allow-git=root github:DafkeDD/ProjectX-cli\n'
         )
         process.exit(1)
+    }
+
+    // Een commando meegeven? Dan geen wizard.
+    const command = process.argv[2]
+    if (command && !command.startsWith('-')) {
+        const ok = await runCommand(command)
+        process.exit(ok ? 0 : 1)
     }
 
     console.clear()
@@ -257,6 +287,11 @@ async function main(): Promise<void> {
         ...(backend !== 'none' ? [{ dir: BACKEND_DIR, run: backendDevCommand(backend, PACKAGE_MANAGER) }] : [])
     ])
     if (database && !isHub) appendDatabaseReadme(projectDir, database, frontend === 'nextjs')
+
+    // Git, regeleindes, CI en de pre-commit hook.
+    const appDirs = [...(frontend === 'nextjs' ? [FRONTEND_DIR] : []), ...(backend !== 'none' ? [BACKEND_DIR] : [])]
+    writeRepoFiles(projectDir, appDirs)
+    await initRepo(projectDir, { dirs: appDirs, pushesToGithub: github.push })
     await pushToGithub(github, projectDir)
 
     // ---- Volgende stappen --------------------------------------------------

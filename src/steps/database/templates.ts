@@ -588,10 +588,56 @@ const CLI_TS = `// Beheer van de database vanaf de commandolijn:
 //   npm run db:tenant:list
 //   npm run db:tenant:block -- <tenantKey>
 //   npm run db:tenant:unblock -- <tenantKey>
-import { controlPool, provisionPool } from './control.js'
+//   npm run db:seed -- <tenantKey|all>    bestanden uit seeds/ in een tenant-database
+//   npm run db:backup -- <tenantKey|all|control>
+//   npm run db:restore -- <tenantKey|control> <bestand>
+import { readdirSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
+import path from 'node:path'
+import { spawn } from 'node:child_process'
+import { env } from '../env.js'
+import { control, controlPool, provisionPool } from './control.js'
+import { decrypt } from './crypto.js'
 import { runMigrations } from './migrate.js'
-import { closeAllTenantPools } from './pools.js'
+import { closeAllTenantPools, openTenantPool } from './pools.js'
 import { listTenants, migrateAllTenants, provisionTenant, setTenantStatus } from './tenants.js'
+
+interface TenantRow {
+    tenant_key: string
+    name: string
+    db_name: string
+    db_role: string
+    db_password: string
+}
+
+/** De tenants waar een commando op slaat: één sleutel of 'all'. */
+async function pickTenants(key: string | undefined): Promise<TenantRow[]> {
+    if (!key) throw new Error('Geef een tenantKey op, of "all".')
+    const rows = await control.many<TenantRow & Record<string, unknown>>(
+        key === 'all'
+            ? "select tenant_key, name, db_name, db_role, db_password from tenants where status = 'active' order by created_at"
+            : 'select tenant_key, name, db_name, db_role, db_password from tenants where tenant_key = $1',
+        key === 'all' ? [] : [key]
+    )
+    if (!rows.length) throw new Error(key === 'all' ? 'Geen actieve tenants.' : \`Onbekende tenant: \${key}\`)
+    return rows
+}
+
+/** pg_dump / pg_restore draaien met het wachtwoord in de omgeving (niet in de argumenten). */
+function pgTool(tool: 'pg_dump' | 'pg_restore', args: string[], password: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const child = spawn(tool, args, {
+            stdio: ['ignore', 'inherit', 'inherit'],
+            env: { ...process.env, PGPASSWORD: password }
+        })
+        child.on('error', () =>
+            reject(new Error(\`\${tool} niet gevonden. Installeer de PostgreSQL client tools (of zet ze in PATH).\`))
+        )
+        child.on('close', code => (code === 0 ? resolve() : reject(new Error(\`\${tool} stopte met code \${code}.\`))))
+    })
+}
+
+const BACKUP_DIR = 'backups'
+const stamp = () => new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16)
 
 const [command, ...args] = process.argv.slice(2)
 
@@ -615,6 +661,64 @@ async function main() {
             const tenants = await listTenants()
             if (!tenants.length) console.log('Nog geen tenants.')
             else console.table(tenants.map(t => ({ key: t.tenant_key, naam: t.name, database: t.db_name, status: t.status, schema: t.schema_version })))
+            break
+        }
+        case 'seed': {
+            const tenants = await pickTenants(args[0])
+            const dir = path.resolve('seeds')
+            const files = existsSync(dir) ? readdirSync(dir).filter(f => f.endsWith('.sql')).sort() : []
+            if (!files.length) throw new Error('Geen bestanden in seeds/ (maak bv. seeds/001_demo.sql).')
+            for (const tenant of tenants) {
+                const pool = openTenantPool(tenant)
+                try {
+                    for (const file of files) {
+                        await pool.query(readFileSync(path.join(dir, file), 'utf8'))
+                        console.log(\`\${tenant.tenant_key}: \${file}\`)
+                    }
+                } finally {
+                    await pool.end()
+                }
+            }
+            break
+        }
+        case 'backup': {
+            mkdirSync(BACKUP_DIR, { recursive: true })
+            const targets =
+                args[0] === 'control'
+                    ? [{ db: env.db.control.database, user: env.db.control.user, password: env.db.control.password() }]
+                    : (await pickTenants(args[0])).map(t => ({
+                          db: t.db_name,
+                          user: t.db_role,
+                          password: decrypt(t.db_password)
+                      }))
+            for (const target of targets) {
+                const file = path.join(BACKUP_DIR, \`\${target.db}-\${stamp()}.dump\`)
+                await pgTool(
+                    'pg_dump',
+                    ['-h', env.db.host, '-p', String(env.db.port), '-U', target.user, '-d', target.db, '-Fc', '-f', file],
+                    target.password
+                )
+                console.log(\`Back-up: \${file}\`)
+            }
+            break
+        }
+        case 'restore': {
+            const [key, file] = args
+            if (!key || !file) throw new Error('Gebruik: npm run db:restore -- <tenantKey|control> <bestand>')
+            const target =
+                key === 'control'
+                    ? { db: env.db.control.database, user: env.db.control.user, password: env.db.control.password() }
+                    : await pickTenants(key).then(rows => ({
+                          db: rows[0]!.db_name,
+                          user: rows[0]!.db_role,
+                          password: decrypt(rows[0]!.db_password)
+                      }))
+            await pgTool(
+                'pg_restore',
+                ['-h', env.db.host, '-p', String(env.db.port), '-U', target.user, '-d', target.db, '--clean', '--if-exists', file],
+                target.password
+            )
+            console.log(\`Teruggezet in \${target.db} vanaf \${file}\`)
             break
         }
         case 'tenant:block':
@@ -667,6 +771,15 @@ create table processed_events (
     type text not null,
     processed_at timestamptz not null default now()
 );
+`
+
+const SEED_EXAMPLE = `-- Voorbeeldgegevens voor een tenant-database: npm run db:seed -- <tenantKey|all>
+-- Alles hier moet je opnieuw kunnen draaien (gebruik on conflict do nothing).
+-- Seeds gaan NOOIT automatisch mee bij het aanmaken van een tenant.
+
+insert into settings (key, value)
+values ('demo', '{"klaar": true}')
+on conflict (key) do nothing;
 `
 
 const TENANT_MIGRATION = `-- Eerste migratie van elke tenant-database.
@@ -763,6 +876,7 @@ export function dbFiles(): Record<string, string> {
         'src/db/tenants.ts': TENANTS_TS,
         'src/db/cli.ts': CLI_TS,
         'migrations/control/001_tenants.sql': CONTROL_MIGRATION,
-        'migrations/tenant/001_init.sql': TENANT_MIGRATION
+        'migrations/tenant/001_init.sql': TENANT_MIGRATION,
+        'seeds/001_voorbeeld.sql': SEED_EXAMPLE
     }
 }

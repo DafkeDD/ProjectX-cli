@@ -436,6 +436,17 @@ export async function setupDatabase(
             'docs/database.md': DOCS_DATABASE(db.appKey, db.mode === 'docker'),
             ...healthFiles(nest)
         })
+        // Back-ups bevatten klantgegevens: nooit in git.
+        const ignore = path.join(target, '.gitignore')
+        const current = fs.existsSync(ignore) ? fs.readFileSync(ignore, 'utf8') : ''
+        if (!/^backups\/$/m.test(current)) {
+            fs.writeFileSync(
+                ignore,
+                `${current.trimEnd()}\n\n# Database-back-ups (npm run db:backup) — klantgegevens!\nbackups/\n`,
+                'utf8'
+            )
+        }
+
         fs.appendFileSync(path.join(target, '.env'), envBlock(db, secrets), 'utf8')
         protectFile(path.join(target, '.env'))
         fs.appendFileSync(path.join(target, '.env.example'), envBlock(db, null), 'utf8')
@@ -456,6 +467,9 @@ export async function setupDatabase(
             'db:tenant:list': `${cli} tenant:list`,
             'db:tenant:block': `${cli} tenant:block`,
             'db:tenant:unblock': `${cli} tenant:unblock`,
+            'db:seed': `${cli} seed`,
+            'db:backup': `${cli} backup`,
+            'db:restore': `${cli} restore`,
             ...(db.mode === 'docker'
                 ? { 'db:up': `docker start ${CONTAINER}`, 'db:down': `docker stop ${CONTAINER}` }
                 : {})

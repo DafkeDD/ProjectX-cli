@@ -3,6 +3,7 @@
 //   npm run hub:admin -- <e-mail> "<naam>"            beheerder maken (wachtwoord wordt gevraagd)
 //   npm run hub:token -- "<naam>"                      registratietoken aanmaken
 //   npm run hub:app -- <appKey> "<naam>" <redirect-url>  app handmatig aansluiten (test)
+//   npm run hub:seed -- <e-mail> "<naam>" "<organisatie>"  demo-account om mee te testen
 import { randomBytes } from 'node:crypto'
 import { createInterface } from 'node:readline/promises'
 import { hub, hubPool } from './hub.js'
@@ -50,6 +51,27 @@ async function main() {
                 await createAccount({ email, name, password, status: 'active', isAdmin: true })
                 console.log(`Beheerder aangemaakt: ${email}`)
             }
+            break
+        }
+
+        case 'seed': {
+            // Demo-account om mee te testen: actief, e-mail bevestigd, eigen organisatie.
+            const [email, ...rest] = args
+            if (!isEmail(email)) throw new Error('Gebruik: npm run hub:seed -- <e-mail> "<naam>" "<organisatie>"')
+            const [name = 'Demo Gebruiker', organization = null] = rest
+                .join(' ')
+                .split('|')
+                .map(part => part.trim())
+            if (await findAccountByEmail(email)) throw new Error(`${email} bestaat al.`)
+            const password = `Demo${randomBytes(6).toString('base64url')}1`
+            const { organization: org } = await createAccount({
+                email,
+                name,
+                password,
+                organization,
+                status: 'active'
+            })
+            console.log(`Demo-account: ${email} / ${password}\n  organisatie: ${org.name} (${org.tenant_key})`)
             break
         }
 

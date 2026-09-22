@@ -314,6 +314,33 @@ Na de installatie zet de CLI in de projectmap een `.gitignore` en `README.md`, e
 
 `.env` gaat nooit mee (wel `.env.example`), `node_modules` en `.next` ook niet.
 
+## Commando's naast de wizard
+
+| Commando                                                  | Wat het doet                                                                                                                                     |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npx --allow-git=root github:DafkeDD/ProjectX-cli`        | de wizard: een nieuw project opzetten                                                                                                            |
+| `npx --allow-git=root github:DafkeDD/ProjectX-cli doctor` | controleert een bestaand project: `.env` volledig, poorten vrij, database bereikbaar, migraties bij, hub bereikbaar en de client-gegevens geldig |
+| `npx --allow-git=root github:DafkeDD/ProjectX-cli update` | zet de nieuwste versie van de bestanden die de CLI beheert in een bestaand project                                                               |
+
+**`update`** kijkt eerst wat voor project er staat (hub, aangesloten app, datalaag) en vergelijkt elk beheerd bestand.
+Je ziet wat nieuw is en wat jij zelf aangepast hebt, en kiest: alleen nieuwe bestanden, of alles. Daarna vult hij
+ontbrekende vertaalsleutels aan (bestaande teksten blijven), draait nieuwe migraties, en biedt aan om ontbrekende
+stukken in `next.config.ts` en `src/env.ts` toe te voegen. `.env` wordt nooit aangeraakt.
+
+## Git, CI en back-ups
+
+- **Altijd een git-repo**: ook zonder GitHub doet de CLI `git init` en een eerste commit, met een `.gitattributes` die
+  regeleindes vastzet (anders krijg je op Windows CRLF in gegenereerde bestanden).
+- **Pre-commit**: `.githooks/pre-commit` draait Prettier en lint in de mappen die wijzigen. Overslaan kan met
+  `git commit --no-verify`.
+- **CI**: `.github/workflows/ci.yml` doet bij elke push en pull request `npm ci`, `format:check`, `lint` en `build` voor
+  frontend en backend.
+- **Back-ups per tenant**: `npm run db:backup -- all|<tenantKey>|control` schrijft naar `backups/` (staat in
+  `.gitignore`), terugzetten met `npm run db:restore -- <tenantKey|control> <bestand>`. Vereist `pg_dump`.
+- **Demo-gegevens**: `npm run db:seed -- all` draait de bestanden uit `seeds/`; in de hub maakt
+  `npm run hub:seed -- <e-mail> "<naam>|<organisatie>"` een testaccount met wachtwoord.
+- **Mailpit** in de hub: `npm run mail` start hem in Docker; de e-mails lees je op http://localhost:8025.
+
 ## Oude versie na een update?
 
 `npx` bewaart een kopie van de CLI en haalt niet altijd de nieuwste commit op. Je ziet de versie bovenaan
